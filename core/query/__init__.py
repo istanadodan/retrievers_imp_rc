@@ -3,9 +3,9 @@ from typing import List, Union
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.vectorstores import VectorStoreRetriever
 from core.db import get_vectorstore_from_type
-from service.pdf_loader import get_documents
+from service.loader.pdf_loader import get_documents
 from pathlib import Path
-from service.text_split import split_documents
+from service.utils.text_split import split_documents
 from langchain.docstore.document import Document
 
 
@@ -17,6 +17,8 @@ def get_retriever(search_type: str = "mmr", k: int = 2, **kwargs):
     )
     
     if "path" in kwargs:
+        if not kwargs.get("path"): return
+        
         _docs = load_docs(kwargs.get("path", "./public/R2304581.pdf"))
         _chunk_size = kwargs.get("chunk_size", 300)
         _chunk_overlap = kwargs.get("chunk_overlap", 0)

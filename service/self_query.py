@@ -1,5 +1,7 @@
 """
-    정제가 되어있는 자료에 대해 유용. 일반 PDF등 문서에는 효용적이지 않음.
+    metadata를 참고하게 하는 방법 제공.
+    문서별 meta정보(AttributeInfo)를 지정.
+    일반 PDF등 문서에는 대응이 난해.
 """
 from typing import List
 from langchain.docstore.document import Document
@@ -13,7 +15,8 @@ def query(query: str):
 
     docs: List[Document] = get_documents()
     vectorstore = get_vectorstore(docs)
-
+    
+    # 메타항목명, 타입, 제한사항 기술
     search_schema = get_fields_info()
     document_content_description = "Brief summary of a movie"
     retriever = SelfQueryRetriever.from_llm(
@@ -22,7 +25,6 @@ def query(query: str):
         document_contents=document_content_description,
         metadata_field_info=search_schema,
         verbose=True,
-        # search_kwargs={"k": 4}, #최대 조회건 수
     )
 
     _result = retriever.get_relevant_documents(query)
