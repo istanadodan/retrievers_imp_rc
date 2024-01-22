@@ -9,24 +9,33 @@ from core.llm import get_llm
 from core.query import get_retriever
 import logging
 from streamlit.runtime.uploaded_file_manager import UploadedFile
+from service import multi_query, parent_document
+from enum import Enum, auto
 
 logging.getLogger("langchain.retrievers.multi_query").setLevel(logging.INFO)
 
 
-def query(query: str, file: str):
+class QueryType(Enum):
+    Multi_Query = auto()
+    Parent_Document = auto()
+
+
+def query(query: str, path: str, query_type: QueryType = QueryType.Multi_Query):
+    _k = 1
+    query_type_map = {
+        QueryType.Multi_Query: multi_query.mquery_retriever,
+        QueryType.Parent_Document: parent_document.pdoc_retriever,
+    }
+
+    _retriever = query_type_map.get(query_type, None)(path, k=_k)
     # 문서 포함 retriever
-    _retriever = get_retriever(k=1, path=file)
     if not _retriever:
-        return "문서를 준비하지 못했습니다"
+        return {"result": "문서를 준비하지 못했습니다"}
 
     # 자동 쿼리생성하는 retriever
-    mul_retriever: MultiQueryRetriever = MultiQueryRetriever.from_llm(
-        retriever=_retriever, llm=get_llm(), include_original=False
-    )
-
     r_qa = RetrievalQA.from_llm(
         llm=get_llm(),
-        retriever=mul_retriever,
+        retriever=_retriever,
         return_source_documents=True,
         verbose=True,
     )

@@ -7,33 +7,20 @@ import pathlib
 from typing import List
 from langchain.docstore.document import Document
 from langchain.retrievers import ParentDocumentRetriever
+from core.db import get_vectorstore
+from service.loader import pdf_loader
+from service.utils.text_split import get_child_splitter, get_parent_splitter
+from langchain.storage import InMemoryStore
 import logging
 
 
-def query(query: str):
-    from core.db import get_vectorstore
-    from service.loader import pdf_loader
-    from service.utils.text_split import get_child_splitter, get_parent_splitter
-    from langchain.storage import InMemoryStore
-
+def query(query: str, path: str):
     # vectorstore에 문서를 넣으면, 이 값이 parent값이 되어 버린다.
     vectorstore = get_vectorstore()
     # 내부 docstore 작성 시, 저장메모리
     store = InMemoryStore()
 
-    retriever = ParentDocumentRetriever(
-        vectorstore=vectorstore,
-        docstore=store,
-        parent_splitter=get_parent_splitter(),
-        child_splitter=get_child_splitter(),
-        search_kwargs={"k": 3},
-    )
-    # child splitter를 사용한 문서를 vectorstore에 업데이트 한다.
-    docs: List[Document] = pdf_loader.get_documents(
-        str(pathlib.Path("./public/R2304581.pdf").resolve())
-    )
-
-    retriever.add_documents(documents=docs, ids=None)
+    retriever = pdoc_retriever(path, k=3)
     logging.info(f"store: {len(list(store.yield_keys()))}")
     # sub_docs = vectorstore.similarity_search(query=query, k=1)
 
@@ -41,3 +28,27 @@ def query(query: str):
     logging.info(f"retrieve output:\n{_result}")
 
     return list(map(lambda x: x.page_content, _result))
+
+
+def pdoc_retriever(path: str, k: int = 3):
+    # child splitter를 사용한 문서를 vectorstore에 업데이트 한다.
+    docs: List[Document] = pdf_loader.get_documents(path)
+    if not docs:
+        return
+
+    # vectorstore에 문서를 넣으면, 이 값이 parent doc이 되어 버린다.
+    vectorstore = get_vectorstore()
+    # 내부 docstore 작성 시, cache 메모리
+    store = InMemoryStore()
+
+    retriever = ParentDocumentRetriever(
+        vectorstore=vectorstore,
+        docstore=store,
+        parent_splitter=get_parent_splitter(),
+        child_splitter=get_child_splitter(),
+        search_kwargs={"k": k},
+    )
+    # parent/child docstore 생성
+    retriever.add_documents(documents=docs, ids=None)
+
+    return retriever

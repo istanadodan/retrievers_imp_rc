@@ -1,54 +1,112 @@
 import logging
 from langchain_community.callbacks.manager import get_openai_callback
 import streamlit as st
-from pathlib import Path
+import utils.file as fileutils
+from service.retrieval_search import QueryType
+from service.retrieval_search import query
+
+
+def return_inactive():
+    return
+
+
+def desc(answer: object, cb: object):
+    if not answer:
+        return
+    st.subheader("답변")
+    st.write(answer.get("result"))
+
+    col1, col2 = st.columns([7, 3])
+    with col1:
+        st.subheader("출처")
+        if answer.get("source_documents", None):
+            st.write(
+                answer.get("source_documents")[0].page_content
+                + "|page="
+                + str(answer["source_documents"][0].metadata.get("page", 0))
+            )
+    with col2:
+        for key, el in cb.__dict__.items():
+            if key.startswith("_"):
+                continue
+            st.write(f"{key}\t: {el}")
 
 
 def main():
-    st.set_page_config(page_icon="🙌", page_title="LLM Query", layout="wide")
     st.header("LLM 질의하기")
-    st.subheader("5가지 질의 방식을 테스트한다")
 
     if "file_path" not in st.session_state:
         st.session_state.file_path = None
 
-    t1, t2 = st.tabs(["mquery retieval", "multi query"])
-    with t1:
-        st.header("질의하기")
-        user_question = st.text_input("파일내용에 대해 질의해 주세요.")
-
-        if user_question:
-            file_path = st.session_state.file_path
-
-            if not file_path:
-                st.write('파일이 선택되지 않았습니다.')
-                return
-            # from service.multi_query import query
-            # from service.parent_document import query
-            # from service.self_query import query
-            # from service.time_weight import query
-            from service.mqry_retrieval import query
-
-            logging.basicConfig(level=logging.INFO)
-
-            with get_openai_callback() as cb:
-                # print(query('갤S24에 대해 알아봐줘'))
-                # print(query("금융데이터 산업 개황을 설명해줘."))
-                answer = query(user_question, file_path)
-                st.write(answer)
-
     with st.sidebar:
-        st.header("파일 업로드")
-        upload_file = st.file_uploader(
-            "Upload a document", type=["pdf"], accept_multiple_files=False
-        )
-        if upload_file:
-            file_path = str((Path(".") / upload_file.name).resolve())
-            with open(file_path, "wb") as f:
-                f.write(upload_file.getbuffer())
+        with st.expander("파일 업로드"):
+            upload_file = st.file_uploader(
+                "Upload a document", type=["pdf"], accept_multiple_files=False
+            )
+            if upload_file:
+                fileutils.save_buffer(
+                    save_filename=upload_file.name, buffer=upload_file.getbuffer()
+                )
 
-            st.session_state.file_path = file_path
+        _filelist = fileutils.filelist()
+        with st.expander("파일목록", expanded=len(_filelist) > 0):
+            selected_file = st.radio(
+                "업로드 파일", options=map(lambda x: x[0], _filelist), index=None
+            )
+            st.session_state.file_path = None
+            if selected_file:
+                st.session_state.file_path = list(
+                    filter(lambda x: x[0] == selected_file, _filelist)
+                )[0][1]
+    # tab 작성
+    with get_openai_callback() as cb:
+        # 탭이 1개인 경우, with문 실행 오류
+        t1, t2 = st.tabs(["mquery retieval", "parent-node retrieval"])
+
+        file_path = st.session_state.file_path
+        answer = {}
+
+        with t1:
+            user_question = st.text_input(
+                "파일내용에 대해 질의해 주세요.", on_change=return_inactive, key="q1"
+            )
+            if st.button("실행", key="b1") and user_question:
+                if file_path:
+                    answer = query(
+                        user_question,
+                        file_path,
+                        query_type=QueryType.Multi_Query,
+                    )
+                else:
+                    st.write("파일이 선택되지 않았습니다.")
+
+            desc(answer=answer, cb=cb)
+
+        with t2:
+            """
+            source_documents가 추출되지 않는 문제가 있음.
+            """
+            user_question = st.text_input(
+                "파일내용에 대해 질의해 주세요.", on_change=return_inactive, key="q2"
+            )
+            if st.button("실행", key="b2") and user_question:
+                if file_path:
+                    answer = query(
+                        user_question,
+                        file_path,
+                        query_type=QueryType.Parent_Document,
+                    )
+                else:
+                    st.write("파일이 선택되지 않았습니다.")
+
+            desc(answer=answer, cb=cb)
+
+
+def setup():
+    st.set_page_config(page_icon="🙌", page_title="LLM Query", layout="wide")
+    logging.basicConfig(level=logging.INFO)
 
 
 if __name__ == "__main__":
+    setup()
     main()
