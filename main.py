@@ -1,10 +1,6 @@
-import logging
-from langchain_community.callbacks.manager import get_openai_callback
 import streamlit as st
-import utils.file as fileutils
-from service.retrieval_search import QueryType
-from service.retrieval_search import query
 from dotenv import load_dotenv
+import logging
 
 load_dotenv()
 
@@ -36,6 +32,10 @@ def write_answer(answer: object, cb: object):
 
 
 def main():
+    from langchain_community.callbacks.manager import get_openai_callback
+    from service.retrieval_search import QueryType, query
+    import utils.file as fileUtils
+
     st.header("LLM 질의하기")
 
     if "file_path" not in st.session_state:
@@ -47,11 +47,11 @@ def main():
                 "Upload a document", type=["pdf"], accept_multiple_files=False
             )
             if upload_file:
-                fileutils.save_buffer(
+                fileUtils.save_buffer(
                     save_filename=upload_file.name, buffer=upload_file.getbuffer()
                 )
 
-        _filelist = fileutils.filelist()
+        _filelist = fileUtils.filelist()
         with st.expander("파일목록", expanded=len(_filelist) > 0):
             selected_file = st.radio(
                 "업로드 파일", options=map(lambda x: x[0], _filelist), index=None
