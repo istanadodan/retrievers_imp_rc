@@ -3,11 +3,11 @@
     검색된 노드의  상위 노드에 딸린 자식노드가 연관성이 가장 높다고 가정한다.
     적정량의 child/parent node chunking크기를 고려한다. 예에서는 기본 (200/800)
 """
-import pathlib
+from pathlib import Path
 from typing import List
 from langchain.docstore.document import Document
 from langchain.retrievers import ParentDocumentRetriever
-from core.db import get_vectorstore
+from core.db import get_vectorstore_from_type
 from service.loader import pdf_loader
 from service.utils.text_split import get_child_splitter, get_parent_splitter
 from langchain.storage import InMemoryStore
@@ -16,13 +16,14 @@ import logging
 
 def query(query: str, path: str):
     # vectorstore에 문서를 넣으면, 이 값이 parent값이 되어 버린다.
-    vectorstore = get_vectorstore()
+    # vectorstore = get_vectorstore_from_type(vd_name="chroma")
+    # sub_docs = vectorstore.similarity_search(query=query, k=1)
+
     # 내부 docstore 작성 시, 저장메모리
     store = InMemoryStore()
 
     retriever = pdoc_retriever(path, k=3)
     logging.info(f"store: {len(list(store.yield_keys()))}")
-    # sub_docs = vectorstore.similarity_search(query=query, k=1)
 
     _result = retriever.get_relevant_documents(query)
     logging.info(f"retrieve output:\n{_result}")
@@ -37,7 +38,13 @@ def pdoc_retriever(path: str, k: int = 3):
         return
 
     # vectorstore에 문서를 넣으면, 이 값이 parent doc이 되어 버린다.
-    vectorstore = get_vectorstore()
+    kwargs = {
+        "vd_name": "pinecone",
+        "index_name": "manuals",
+        "filename": Path(path).name,
+        "path": path,
+    }
+    vectorstore = get_vectorstore_from_type(**kwargs)
     # 내부 docstore 작성 시, cache 메모리
     store = InMemoryStore()
 

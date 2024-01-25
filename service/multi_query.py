@@ -3,7 +3,7 @@ from langchain.retrievers import MultiQueryRetriever
 import logging
 from core.llm import get_llm
 from core.query import get_retriever
-import re
+import re, os
 
 logging.getLogger("langchain.retrievers.multi_query").setLevel(logging.INFO)
 
@@ -17,7 +17,13 @@ def query(query: str, doc_path: str, k: int = 1):
 
 
 def mquery_retriever(doc_path: str, k: int = 1):
-    _retriever = get_retriever(k=k, path=doc_path)
+    kwargs = {
+        "vd_name": "pinecone",
+        "index_name": "manuals",
+        "filename": os.path.basename(doc_path),
+        "path": doc_path,
+    }
+    _retriever = get_retriever(k=k, **kwargs)
     if not _retriever:
         return
 

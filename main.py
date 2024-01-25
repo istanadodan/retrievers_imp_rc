@@ -4,13 +4,16 @@ import streamlit as st
 import utils.file as fileutils
 from service.retrieval_search import QueryType
 from service.retrieval_search import query
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def return_inactive():
     return
 
 
-def desc(answer: object, cb: object):
+def write_answer(answer: object, cb: object):
     if not answer:
         return
     st.subheader("답변")
@@ -29,7 +32,7 @@ def desc(answer: object, cb: object):
         for key, el in cb.__dict__.items():
             if key.startswith("_"):
                 continue
-            st.write(f"{key}\t: {el}")
+            st.write(key, " : ", el)
 
 
 def main():
@@ -80,7 +83,7 @@ def main():
                 else:
                     st.write("파일이 선택되지 않았습니다.")
 
-            desc(answer=answer, cb=cb)
+            write_answer(answer=answer, cb=cb)
 
         with t2:
             """
@@ -90,20 +93,22 @@ def main():
                 "파일내용에 대해 질의해 주세요.", on_change=return_inactive, key="q2"
             )
             if st.button("실행", key="b2") and user_question:
-                if file_path:
-                    answer = query(
-                        user_question,
-                        file_path,
-                        query_type=QueryType.Parent_Document,
-                    )
-                else:
-                    st.write("파일이 선택되지 않았습니다.")
+                with st.spinner():
+                    if file_path:
+                        answer = query(
+                            user_question,
+                            file_path,
+                            query_type=QueryType.Parent_Document,
+                        )
+                    else:
+                        st.write("파일이 선택되지 않았습니다.")
 
-            desc(answer=answer, cb=cb)
+            write_answer(answer=answer, cb=cb)
 
 
 def setup():
     st.set_page_config(page_icon="🙌", page_title="LLM Query", layout="wide")
+
     logging.basicConfig(level=logging.INFO)
 
 

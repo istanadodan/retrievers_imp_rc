@@ -10,12 +10,12 @@ import logging
 
 
 def query(query: str):
-    from core.db import get_vectorstore
+    from core.db import get_vectorstore_from_type
     from core.llm import get_llm
 
     docs: List[Document] = get_documents()
-    vectorstore = get_vectorstore(docs)
-    
+    vectorstore = get_vectorstore_from_type(vd_name="chroma", docs=docs)
+
     # 메타항목명, 타입, 제한사항 기술
     search_schema = get_fields_info()
     document_content_description = "Brief summary of a movie"
