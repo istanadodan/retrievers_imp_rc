@@ -14,6 +14,8 @@ def get_parent_splitter():
 def split_documents(
     docs: List[Document], chunk_size: int = 300, chunk_overlap: int = 0
 ):
+    if not docs:
+        return []
     _splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size, chunk_overlap=chunk_overlap
     )

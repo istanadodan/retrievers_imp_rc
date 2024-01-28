@@ -27,7 +27,7 @@ def query(query: str, path: str, query_type: QueryType = QueryType.Multi_Query):
         QueryType.Parent_Document: parent_document.pdoc_retriever,
     }
 
-    _retriever = query_type_map.get(query_type, None)(path, k=_k)
+    _retriever = query_type_map[query_type](path, k=_k)
     # 문서 포함 retriever
     if not _retriever:
         return {"result": "문서를 준비하지 못했습니다"}
@@ -38,6 +38,7 @@ def query(query: str, path: str, query_type: QueryType = QueryType.Multi_Query):
         retriever=_retriever,
         return_source_documents=True,
         verbose=True,
+        llm_chain_kwargs={"verbose": True},
     )
     answer = r_qa.invoke({"query": query})
     return {x: answer[x] for x in iter(answer) if x in ["result", "source_documents"]}

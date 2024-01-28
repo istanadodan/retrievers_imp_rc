@@ -1,7 +1,7 @@
 from typing import Union
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from sentence_transformers import SentenceTransformer
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, OpenAI
 import os
 
 embeddings_model_name = os.getenv("embeddings_model_name")
@@ -29,3 +29,4 @@ def get_llm(
         return SentenceTransformer("all-MiniLM-L6-v2", device=device)
 
     return ChatOpenAI(model=model_name or chat_model_name, temperature=0)
+    # return OpenAI(temperature=0)

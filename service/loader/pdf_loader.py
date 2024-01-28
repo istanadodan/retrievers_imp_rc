@@ -1,8 +1,8 @@
-from typing import List
-from typing import Union
+from typing import Union, List
 from langchain.document_loaders.pdf import PyPDFLoader
 
-def get_documents(files:Union[List[str], str]):
+
+def get_documents(files: Union[List[str], str]):
     files = files if isinstance(files, list) else [files]
     docs = []
     for file in files:

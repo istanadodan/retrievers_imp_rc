@@ -1,4 +1,5 @@
-from typing import List
+from pathlib import Path
+from typing import List, Union
 from langchain.retrievers import MultiQueryRetriever
 import logging
 from core.llm import get_llm
@@ -20,10 +21,10 @@ def mquery_retriever(doc_path: str, k: int = 1):
     kwargs = {
         "vd_name": "pinecone",
         "index_name": "manuals",
-        "filename": os.path.basename(doc_path),
-        "path": doc_path,
+        "namespace": os.path.basename(doc_path),
+        "doc_path": doc_path,
     }
-    _retriever = get_retriever(k=k, **kwargs)
+    _retriever = get_retriever(search_type="mmr", k=k, **kwargs)
     if not _retriever:
         return
 

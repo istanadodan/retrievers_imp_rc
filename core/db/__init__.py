@@ -7,13 +7,15 @@ from core.llm import get_embeddings
 from langchain.docstore.in_memory import InMemoryDocstore
 import logging
 
+"""생성자 혹은 from_documents를 통해 vectorstore 생성
+"""
+
 
 def get_vectorstore_from_type(
     *,
     vd_name: str = "chroma",
     docs: List[Document] = None,
     store: object = InMemoryDocstore(),
-    index_name: str = None,
     **kwargs,
 ) -> any:
     _embedding_model = get_embeddings()
@@ -41,9 +43,10 @@ def get_vectorstore_from_type(
         import pinecone
         import os
 
-        namesapce = kwargs.get("filename")
+        namesapce = kwargs.get("namespace")
+        index_name = kwargs.get("index_name")
         if not namesapce:
-            raise Exception("filename이 입력되지 않았습니다")
+            raise Exception("namespace가 입력되지 않았습니다")
 
         pc = pinecone.Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
         # try:
