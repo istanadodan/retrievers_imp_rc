@@ -2,28 +2,26 @@
     LLM으로 하여금 관련된 유사질의를 4개를 만들어 수행.
     질의 갯수는 default promptTemplate에 존재.
 """
-from typing import Union
 from langchain.chains.retrieval_qa.base import RetrievalQA
-from langchain.retrievers import MultiQueryRetriever
 from core.llm import get_llm
-from core.query import get_retriever
-import logging
-from streamlit.runtime.uploaded_file_manager import UploadedFile
-from service import multi_query, parent_document
+from service import multi_query, parent_document, contextual_compression
 from enum import Enum, auto
+import logging
 
 logging.getLogger("langchain.retrievers.multi_query").setLevel(logging.INFO)
 
 
 class QueryType(Enum):
     Multi_Query = auto()
+    Contextual_Compression = auto()
     Parent_Document = auto()
 
 
-def query(query: str, path: str, query_type: QueryType = QueryType.Multi_Query):
-    _k = 1
+def query(query: str, path: str, query_type: QueryType):
+    _k = 3
     query_type_map = {
         QueryType.Multi_Query: multi_query.mquery_retriever,
+        QueryType.Contextual_Compression: contextual_compression.compression_retriever,
         QueryType.Parent_Document: parent_document.pdoc_retriever,
     }
 
