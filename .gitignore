@@ -1,2 +1,7 @@
 __pycache__
-db
+.gitignore
+.venv
+.vscode
+.env
+models
+public

@@ -25,9 +25,14 @@ def attach_sidebar(st: streamlit):
                     filter(lambda x: x[0] == selected_file, _filelist)
                 )[0][1]
 
+        with st.expander("조회옵션", expanded=True):
+            st.session_state.top_k = st.text_input(label="k 건수", value="1")
+
         with st.expander("사용된 토큰", expanded=True):
             if "token_usage" in st.session_state:
-                for key, el in st.session_state.token_usage.items():
+                for key, val in st.session_state.token_usage.items():
                     if key.startswith("_"):
                         continue
-                    st.write(key, " : ", el)
+                    if isinstance(val, float):
+                        val = round(val, 7)
+                    st.write(key, " : ", val)

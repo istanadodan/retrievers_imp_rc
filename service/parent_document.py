@@ -3,6 +3,7 @@
     검색된 노드의  상위 노드에 딸린 자식노드가 연관성이 가장 높다고 가정한다.
     적정량의 child/parent node chunking크기를 고려한다. 예에서는 기본 (200/800)
 """
+import os
 from pathlib import Path
 from typing import List
 from langchain.docstore.document import Document
@@ -14,7 +15,7 @@ from langchain.storage import InMemoryStore
 import logging
 
 
-def query(query: str, path: str):
+def query(query: str, doc_path: str, k: int = 3):
     # vectorstore에 문서를 넣으면, 이 값이 parent값이 되어 버린다.
     # vectorstore = get_vectorstore_from_type(vd_name="chroma")
     # sub_docs = vectorstore.similarity_search(query=query, k=1)
@@ -22,7 +23,7 @@ def query(query: str, path: str):
     # 내부 docstore 작성 시, 저장메모리
     store = InMemoryStore()
 
-    retriever = pdoc_retriever(path, k=3)
+    retriever = pdoc_retriever(doc_path, k=k)
     logging.info(f"store: {len(list(store.yield_keys()))}")
 
     _result = retriever.get_relevant_documents(query)
@@ -31,9 +32,9 @@ def query(query: str, path: str):
     return list(map(lambda x: x.page_content, _result))
 
 
-def pdoc_retriever(path: str, k: int = 3):
+def pdoc_retriever(doc_path: str, k: int = 3):
     # child splitter를 사용한 문서를 vectorstore에 업데이트 한다.
-    docs: List[Document] = pdf_loader.get_documents(path)
+    docs: List[Document] = pdf_loader.get_documents(doc_path)
     if not docs:
         return
 
@@ -41,8 +42,8 @@ def pdoc_retriever(path: str, k: int = 3):
     kwargs = {
         "vd_name": "pinecone",
         "index_name": "manuals",
-        "filename": Path(path).name,
-        "path": path,
+        "namespace": os.path.basename(doc_path),
+        "doc_path": doc_path,
     }
     vectorstore = get_vectorstore_from_type(**kwargs)
     # 내부 docstore 작성 시, cache 메모리
@@ -54,6 +55,7 @@ def pdoc_retriever(path: str, k: int = 3):
         parent_splitter=get_parent_splitter(),
         child_splitter=get_child_splitter(),
         search_kwargs={"k": k},
+        kwargs={"verbose": True},
     )
     # parent/child docstore 생성
     retriever.add_documents(documents=docs, ids=None)

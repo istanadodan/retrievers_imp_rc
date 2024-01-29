@@ -28,5 +28,7 @@ def get_llm(
         device = "cuda" if torch.cuda.is_available() else "cpu"
         return SentenceTransformer("all-MiniLM-L6-v2", device=device)
 
-    return ChatOpenAI(model=model_name or chat_model_name, temperature=0)
-    # return OpenAI(temperature=0)
+    return ChatOpenAI(
+        model=model_name or chat_model_name, temperature=0, max_tokens=500
+    )
+    # return OpenAI(temperature=0, max_tokens=500)
