@@ -11,6 +11,8 @@ from langchain_community.vectorstores.pinecone import Pinecone
 def get_retriever(search_type: str = "mmr", k: int = 2, **kwargs):
     _path = Path(kwargs.get("doc_path", ""))
     _namespace = kwargs.get("namespace", "default")
+    _chunk_size = kwargs.get("chunk_size", 300)
+    _chunk_overlap = kwargs.get("chunk_overlap", 0)
 
     _vs = get_vectorstore_from_type(**kwargs)
 
@@ -19,7 +21,7 @@ def get_retriever(search_type: str = "mmr", k: int = 2, **kwargs):
             raise Exception("파일 경로가 입력되지 않았습니다.")
 
         # docs취득
-        kwargs["docs"] = get_docs_from_persist(_path)
+        kwargs["docs"] = get_docs_from_persist(_path, _chunk_size, _chunk_overlap)
         _vs = get_vectorstore_from_type(**kwargs)
 
     _retriever = VectorStoreRetriever(

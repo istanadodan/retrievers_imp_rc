@@ -39,12 +39,9 @@ def pdoc_retriever(doc_path: str, k: int = 3):
         return
 
     # vectorstore에 문서를 넣으면, 이 값이 parent doc이 되어 버린다.
-    kwargs = {
-        "vd_name": "pinecone",
-        "index_name": "manuals",
-        "namespace": os.path.basename(doc_path),
-        "doc_path": doc_path,
-    }
+    from service.utils.retrieve_params import get_retrieve_params
+
+    kwargs = get_retrieve_params(doc_path=doc_path)
     vectorstore = get_vectorstore_from_type(**kwargs)
     # 내부 docstore 작성 시, cache 메모리
     store = InMemoryStore()

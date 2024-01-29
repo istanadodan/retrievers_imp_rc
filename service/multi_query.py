@@ -18,12 +18,9 @@ def query(query: str, doc_path: str, k: int = 1):
 
 
 def mquery_retriever(doc_path: str, k: int = 1):
-    kwargs = {
-        "vd_name": "pinecone",
-        "index_name": "manuals",
-        "namespace": os.path.basename(doc_path),
-        "doc_path": doc_path,
-    }
+    from service.utils.retrieve_params import get_retrieve_params
+
+    kwargs = get_retrieve_params(doc_path=doc_path)
     _retriever = get_retriever(search_type="mmr", k=k, **kwargs)
     if not _retriever:
         return
