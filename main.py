@@ -3,12 +3,14 @@ from dotenv import load_dotenv
 import logging
 from template.side_bar import attach_sidebar
 from template.body import write_answer
+from utils import return_inactive
 
 load_dotenv()
 
 
-def return_inactive():
-    return
+def write_warning(message: str):
+    st.warning(message)
+    # st.stop()
 
 
 # def write_answer(answer: str, cb: object):
@@ -41,11 +43,7 @@ def main():
     # tab 작성
     try:
         with get_openai_callback() as cb:
-            top_k = (
-                int(st.session_state.top_k)
-                if st.session_state.top_k and st.session_state.top_k.isdigit()
-                else 2
-            )
+            top_k = st.session_state.top_k if st.session_state.top_k else 2
 
             # 탭이 1개인 경우, with문 실행 오류
             tab1, tab2, t3, tab4 = st.tabs(
@@ -61,7 +59,7 @@ def main():
                 user_question = st.text_input(
                     "파일내용에 대해 질의해 주세요.", on_change=return_inactive, key="q1"
                 )
-                if st.button("실행", key="b1") and user_question:
+                if st.button("실행", key="b1", type="primary") and user_question:
                     if file_path:
                         answer = query(
                             user_question,
@@ -72,7 +70,7 @@ def main():
 
                         write_answer(answer=answer, cb=cb)
                     else:
-                        st.write("파일이 선택되지 않았습니다.")
+                        write_warning("파일이 선택되지 않았습니다.")
 
             with tab2:
                 """
@@ -82,7 +80,7 @@ def main():
                 user_question = st.text_input(
                     "파일내용에 대해 질의해 주세요.", on_change=return_inactive, key="q2"
                 )
-                if st.button("실행", key="b2") and user_question:
+                if st.button("실행", key="b2", type="secondary") and user_question:
                     with st.spinner():
                         if file_path:
                             answer = query(
@@ -91,10 +89,9 @@ def main():
                                 query_type=QueryType.Parent_Document,
                                 k=top_k,
                             )
-
                             write_answer(answer=answer, cb=cb)
                         else:
-                            st.write("파일이 선택되지 않았습니다.")
+                            write_warning("파일이 선택되지 않았습니다.")
 
             with t3:
                 """
@@ -115,7 +112,7 @@ def main():
 
                             write_answer(answer=answer, cb=cb)
                         else:
-                            st.write("파일이 선택되지 않았습니다.")
+                            write_warning("파일이 선택되지 않았습니다.")
 
             with tab4:
                 """

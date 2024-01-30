@@ -1,4 +1,5 @@
 import streamlit
+from utils import return_inactive
 
 
 def attach_sidebar(st: streamlit):
@@ -26,7 +27,10 @@ def attach_sidebar(st: streamlit):
                 )[0][1]
 
         with st.expander("조회옵션", expanded=True):
-            st.session_state.top_k = st.text_input(label="k 건수", value="1")
+            # st.session_state.top_k = st.text_input(label="top-k", value="1")
+            st.session_state.top_k = st.slider(
+                "top-k", 1, 10, on_change=return_inactive
+            )
 
         with st.expander("사용된 토큰", expanded=True):
             if "token_usage" in st.session_state:

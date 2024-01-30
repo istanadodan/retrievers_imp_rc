@@ -1,16 +1,24 @@
 import streamlit as st
+import time
 
 
 def write_answer(answer: str, cb: object):
     if not answer:
         return
+    with st.container(border=True):
+        # with st.empty():
+        #     for seconds in range(10):
+        #         st.write(f"⏳ {seconds} seconds have passed")
+        #         time.sleep(1)
+        #     st.write("✔️ 10 seconds over!")
 
-    st.session_state.token_usage = cb.__dict__
+        st.session_state.token_usage = cb.__dict__
 
-    col1, _ = st.columns([9, 1], gap="large")
-    with col1:
-        st.subheader("답변")
-        st.write(insert_line_feed(answer.get("result")))
+        col1, _ = st.columns([9, 1], gap="large")
+        with col1:
+            st.subheader("답변")
+            st.divider()
+            st.write(insert_line_feed(answer.get("result")))
 
     with st.expander("출처 보기", expanded=False):
         srcs = answer.get("source_documents", [])
