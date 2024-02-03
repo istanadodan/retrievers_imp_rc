@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Dict
 
 
-def get_retrieve_params(doc_path: str, **kwargs) -> Dict[str, object]:
+def get_default_vsparams(doc_path: str, **kwargs) -> Dict[str, object]:
     _path = Path(doc_path)
     if not _path.name or not _path.exists():
         raise ValueError("Path does not exist")

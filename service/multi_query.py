@@ -18,9 +18,9 @@ def query(query: str, doc_path: str, k: int = 1):
 
 
 def mquery_retriever(doc_path: str, k: int = 1):
-    from service.utils.retrieve_params import get_retrieve_params
+    from service.utils.retrieve_params import get_default_vsparams
 
-    kwargs = get_retrieve_params(doc_path=doc_path)
+    kwargs = get_default_vsparams(doc_path=doc_path)
     _retriever = get_retriever(search_type="mmr", k=k, **kwargs)
     if not _retriever:
         return

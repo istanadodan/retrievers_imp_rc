@@ -3,6 +3,7 @@
     검색된 노드의  상위 노드에 딸린 자식노드가 연관성이 가장 높다고 가정한다.
     적정량의 child/parent node chunking크기를 고려한다. 예에서는 기본 (200/800)
 """
+
 import os
 from pathlib import Path
 from typing import List
@@ -39,9 +40,9 @@ def pdoc_retriever(doc_path: str, k: int = 3):
         return
 
     # vectorstore에 문서를 넣으면, 이 값이 parent doc이 되어 버린다.
-    from service.utils.retrieve_params import get_retrieve_params
+    from service.utils.retrieve_params import get_default_vsparams
 
-    kwargs = get_retrieve_params(doc_path=doc_path)
+    kwargs = get_default_vsparams(doc_path=doc_path, vd_name="chroma")
     vectorstore = get_vectorstore_from_type(**kwargs)
     # 내부 docstore 작성 시, cache 메모리
     store = InMemoryStore()
@@ -49,8 +50,8 @@ def pdoc_retriever(doc_path: str, k: int = 3):
     retriever = ParentDocumentRetriever(
         vectorstore=vectorstore,
         docstore=store,
-        parent_splitter=get_parent_splitter(),
-        child_splitter=get_child_splitter(),
+        parent_splitter=get_parent_splitter(350),
+        child_splitter=get_child_splitter(100),
         search_kwargs={"k": k},
         kwargs={"verbose": True},
     )

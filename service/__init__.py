@@ -2,10 +2,12 @@
     LLM으로 하여금 관련된 유사질의를 4개를 만들어 수행.
     질의 갯수는 default promptTemplate에 존재.
 """
+
 from langchain.chains.retrieval_qa.base import RetrievalQA
 from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
 from core.llm import get_llm
+from core.db import get_vectorstore_from_type
 from service import multi_query, parent_document, contextual_compression
 from enum import Enum, auto
 import logging
@@ -33,6 +35,13 @@ def simple_query(query: str):
 
 
 def query(query: str, path: str, query_type: QueryType, k: int = 2):
+    from langchain_core.runnables import (
+        RunnablePassthrough,
+        RunnableLambda,
+        RunnableParallel,
+    )
+    from langchain_core.output_parsers import StrOutputParser, SimpleJsonOutputParser
+
     query_type_map = {
         QueryType.Multi_Query: multi_query.mquery_retriever,
         QueryType.Contextual_Compression: contextual_compression.compression_retriever,
@@ -44,13 +53,63 @@ def query(query: str, path: str, query_type: QueryType, k: int = 2):
     if not _retriever:
         return {"result": "문서를 준비하지 못했습니다"}
 
-    # 자동 쿼리생성하는 retriever
-    r_qa = RetrievalQA.from_llm(
-        llm=get_llm(),
-        retriever=_retriever,
-        return_source_documents=True,
-        verbose=True,
-        llm_chain_kwargs={"verbose": True},
+    template = """Answer the question based only on the following context:
+{context}
+Write in Korean.
+Question: {question}
+Answer:
+"""
+    # LCEL을 사용하여 chain을 만들어본다.
+    from operator import itemgetter
+
+    r_qa = (
+        {
+            "context": _retriever,
+            "question": RunnablePassthrough() | RunnableLambda(lambda x: x["question"]),
+        }
+        | RunnableParallel(
+            result=PromptTemplate.from_template(template)
+            | get_llm()
+            | StrOutputParser(),
+            source_documents=RunnableLambda(lambda x: x["context"]),
+        )
+        | RunnableLambda(
+            lambda answer: {
+                x: answer[x]
+                for x in iter(answer)
+                if x in ["result", "source_documents"]
+            }
+        )
     )
-    answer = r_qa.invoke({"query": query})
-    return {x: answer[x] for x in iter(answer) if x in ["result", "source_documents"]}
+    answer = r_qa.invoke({"question": query})
+    # 자동 쿼리생성하는 retriever
+    # r_qa = RetrievalQA.from_llm(
+    #     llm=get_llm(),
+    #     retriever=_retriever,
+    #     return_source_documents=True,
+    #     verbose=True,
+    #     input_key="question",
+    #     llm_chain_kwargs={"verbose": True},
+    # )
+    # answer = r_qa.invoke({"question": query})
+    # return {x: answer[x] for x in iter(answer) if x in ["result", "source_documents"]}
+    return answer
+
+
+def persist_vectorstore(path: str):
+    from service.utils.text_split import split_documents
+    from service.loader.pdf_loader import get_documents
+    import os
+
+    # 문서 load
+    docs = get_documents(path)
+    # docs생성
+    split_docs = split_documents(docs)
+
+    # vectorstore를 불러온다.
+    _vstore = get_vectorstore_from_type(
+        vd_name="pinecone", index_name="manuals", namespace=os.path.basename(path)
+    )
+    # save to db
+    _vstore.add_documents(split_docs)
+    # 저장한다.

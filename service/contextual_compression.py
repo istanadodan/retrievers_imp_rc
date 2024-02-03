@@ -26,9 +26,9 @@ def compression_retriever(doc_path: str, k: int = 1, thre: float = 0.6):
         EmbeddingsRedundantFilter,
     )
     from langchain.retrievers.document_compressors import DocumentCompressorPipeline
-    from service.utils.retrieve_params import get_retrieve_params
+    from service.utils.retrieve_params import get_default_vsparams
 
-    kwargs = get_retrieve_params(doc_path=doc_path)
+    kwargs = get_default_vsparams(doc_path=doc_path)
     _retriever = get_retriever(search_type="mmr", k=k, **kwargs)
     if not _retriever:
         return

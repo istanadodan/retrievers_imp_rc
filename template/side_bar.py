@@ -11,9 +11,13 @@ def attach_sidebar(st: streamlit):
                 "Upload a document", type=["pdf"], accept_multiple_files=False
             )
             if upload_file:
-                fileUtils.save_buffer(
+                from service import persist_vectorstore
+
+                persist_path = fileUtils.save_buffer(
                     save_filename=upload_file.name, buffer=upload_file.getbuffer()
                 )
+                # vectorstore에 저장한다.
+                persist_vectorstore(persist_path)
 
         _filelist = fileUtils.filelist()
         with st.expander("파일목록", expanded=len(_filelist) > 0):

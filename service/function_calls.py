@@ -1,39 +1,10 @@
 import datetime
 import json
 from dotenv import load_dotenv
-import openai
-import os
 from langchain.pydantic_v1 import BaseModel, Field
 from langchain.tools import tool
 
 load_dotenv()
-
-
-class Param(BaseModel):
-    loc_origin: str = Field(description="The departure airport, e.g. DUS")
-    loc_destination: str = Field(description="The destination airport, e.g. HAM")
-
-
-function_descriptions = [
-    {
-        "name": "get_flight_info",
-        "description": "Get flight information between two locations",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "loc_origin": {
-                    "type": "string",
-                    "description": "The departure airport, e.g. DUS",
-                },
-                "loc_destination": {
-                    "type": "string",
-                    "description": "The destination airport, e.g. HAM",
-                },
-            },
-            "required": ["loc_origin", "loc_destination"],
-        },
-    }
-]
 
 
 @tool
@@ -53,8 +24,8 @@ def get_flight_info(loc_origin, loc_destination):
 
 
 @tool
-def send_back_email_for_complaint(email: str, subject: str, body: str):
-    """Set email information."""
+def send_back_email_for_complaint(email: str, subject: str, body: str) -> str:
+    """Send email information and return the result."""
 
     # Example output returned from an API or database
     email_info = {
@@ -69,16 +40,15 @@ def send_back_email_for_complaint(email: str, subject: str, body: str):
 def query2(prompt: str):
     # from core.llm import get_llm
     from langchain.agents import create_openai_functions_agent, AgentExecutor
-    from langchain.tools import Tool, StructuredTool
-    from langchain_community.tools.tavily_search import TavilySearchResults
-    from langchain.chat_models import ChatOpenAI
+    from langchain_community.chat_models import ChatOpenAI
     from langchain.prompts import (
         ChatPromptTemplate,
-        SystemMessagePromptTemplate,
         MessagesPlaceholder,
-        HumanMessagePromptTemplate,
-        PromptTemplate,
     )
+
+    # class Param(BaseModel):
+    #     loc_origin: str = Field(description="The departure airport, e.g. DUS")
+    #     loc_destination: str = Field(description="The destination airport, e.g. HAM")
 
     # messages = [
     #     SystemMessagePromptTemplate(
@@ -127,6 +97,27 @@ def query2(prompt: str):
 
 def query(prompt: str):
     import openai
+
+    function_descriptions = [
+        {
+            "name": "get_flight_info",
+            "description": "Get flight information between two locations",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "loc_origin": {
+                        "type": "string",
+                        "description": "The departure airport, e.g. DUS",
+                    },
+                    "loc_destination": {
+                        "type": "string",
+                        "description": "The destination airport, e.g. HAM",
+                    },
+                },
+                "required": ["loc_origin", "loc_destination"],
+            },
+        }
+    ]
 
     client = openai.Client()
 

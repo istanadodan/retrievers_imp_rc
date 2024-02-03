@@ -17,7 +17,7 @@ def write_answer(answer: str, cb: object):
         col1, _ = st.columns([9, 1], gap="large")
         with col1:
             st.subheader("답변")
-            st.divider()
+            # st.divider()
             st.write(insert_line_feed(answer.get("result")))
 
     with st.expander("출처 보기", expanded=False):
@@ -33,4 +33,6 @@ def write_answer(answer: str, cb: object):
 def insert_line_feed(txt: str, match: str = "다\.", rep: str = "\n"):
     import re
 
+    if not isinstance(txt, str):
+        raise Exception(txt)
     return re.sub(f"({match})", rf"\1{rep}", txt)

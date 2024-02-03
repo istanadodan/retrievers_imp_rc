@@ -2,10 +2,11 @@ from langchain.docstore.document import Document
 from langchain_community.vectorstores.chroma import Chroma
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_community.vectorstores.pinecone import Pinecone
+from langchain_community.vectorstores import VectorStore
 from typing import List
 from core.llm import get_embeddings
 from langchain.docstore.in_memory import InMemoryDocstore
-import logging
+from .vectorstore import PineconeVs, FaissVs, ChromaVs
 
 """생성자 혹은 from_documents를 통해 vectorstore 생성
 """
@@ -20,69 +21,24 @@ def get_vectorstore_from_type(
 ) -> any:
     _embedding_model = get_embeddings()
 
-    if vd_name == "faiss":
-        import faiss
+    namespace = kwargs.get("namespace")
+    index_name = kwargs.get("index_name")
 
-        embedding_word_demension = 768
-        _index = faiss.IndexFlatL2(embedding_word_demension)
-        return FAISS(
-            embedding_function=_embedding_model,
-            index=_index,
-            docstore=store,
-            index_to_docstore_id={},
-        )
+    if vd_name == "faiss":
+        _vs_wapper = FaissVs(index_name=index_name, embeddings=_embedding_model)
+
+        return _vs_wapper.get(store=store)
 
     if vd_name == "chroma":
-        if docs:
-            return Chroma.from_documents(documents=docs, embedding=_embedding_model)
+        _vs_wapper = ChromaVs(embedding_model=_embedding_model)
 
-        return Chroma(collection_name="pdf_docs", embedding_function=_embedding_model)
+        return _vs_wapper.get(collection_name=namespace, docs=docs)
 
     """filename,"""
     if vd_name == "pinecone":
-        import pinecone
-        import os
+        _vs_wapper = PineconeVs(index_name=index_name, embedding_model=_embedding_model)
 
-        namesapce = kwargs.get("namespace")
-        index_name = kwargs.get("index_name")
-        if not namesapce:
-            raise Exception("namespace가 입력되지 않았습니다")
-
-        pc = pinecone.Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-        # try:
-        #     return Pinecone.from_existing_index(
-        #         index_name=index_name, embedding=_embedding_model, namespace=file
-        #     )
-        # except:
-
-        existing_indexes = [index_info["name"] for index_info in pc.list_indexes()]
-        if index_name not in existing_indexes:
-            from time import time
-
-            # Create Index
-            pc.create_index(
-                name=index_name,
-                dimension=768,
-                metric="cosine",
-                spec=pinecone.ServerlessSpec(cloud="aws", region="us-west-2"),
-            )
-
-            while not pc.describe_index(index_name).status["ready"]:
-                time.sleep(1)
-
-        if docs:
-            # index_name은 필수값
-            # embedding_chunk_size for llm rateLimit, batch_size for Pinecone to avoid its trafiic
-            return Pinecone.from_documents(
-                documents=docs,
-                embedding=_embedding_model,
-                index_name=index_name,
-                namespace=namesapce,
-            )
-
-        return Pinecone.from_existing_index(
-            index_name=index_name, embedding=_embedding_model, namespace=namesapce
-        )
+        return _vs_wapper.get(namesapce=namespace, docs=docs)
 
         # vectors = [{"id": "vec1", "values": [0.1, 0.1]}]
 
