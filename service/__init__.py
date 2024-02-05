@@ -55,7 +55,8 @@ def query(query: str, path: str, query_type: QueryType, k: int = 2):
     if not _retriever:
         return {"result": "문서를 준비하지 못했습니다"}
 
-    from service.tools.mydata import get_mydata_company_info
+    from service.tools import serp_api, mydata
+
     from langchain.agents import create_openai_functions_agent, AgentExecutor
     from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
     from langchain_core.output_parsers import StrOutputParser, SimpleJsonOutputParser
@@ -67,7 +68,7 @@ def query(query: str, path: str, query_type: QueryType, k: int = 2):
             MessagesPlaceholder("agent_scratchpad"),
         ]
     )
-    tools = [get_mydata_company_info]
+    tools = [mydata.get_mydata_company_info, serp_api.get_query_from_serpapi]
     agent = create_openai_functions_agent(tools=tools, llm=get_llm(), prompt=_prompt)
     agent_executor = AgentExecutor.from_agent_and_tools(
         agent=agent,
