@@ -1,6 +1,5 @@
 from dotenv import load_dotenv
 from langchain.pydantic_v1 import BaseModel, Field
-from langchain_community.chat_models import ChatOpenAI
 from openai import OpenAI
 import time
 import os

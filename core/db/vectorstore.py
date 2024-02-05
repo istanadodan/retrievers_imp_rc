@@ -7,8 +7,6 @@ import os
 
 
 class PineconeVs(VectoreStoreInf):
-    client: object = None
-    vectorstore: object = None
 
     def __init__(self, index_name: str, embedding_model: object) -> None:
         import pinecone
@@ -58,9 +56,6 @@ class PineconeVs(VectoreStoreInf):
     def delete(self, id: any, **kwargs):
         return self.vectorstore.delete(namespace=id, delete_all=True)
 
-    def add(self, docs: List[Document]):
-        """"""
-
     def search(self, query: str, **kwargs):
         """"""
 
@@ -70,8 +65,6 @@ class PineconeVs(VectoreStoreInf):
 
 
 class FaissVs(VectoreStoreInf):
-    client: object = None
-    vectorstore: object = None
 
     def __init__(self, embedding_model: object, dim: int = 768) -> None:
         import faiss
@@ -89,10 +82,14 @@ class FaissVs(VectoreStoreInf):
         )
         return self.vectorstore
 
+    def search(self, query: str, **kwargs):
+        """"""
+
+    def delete(self, id: any, **kwargs):
+        """"""
+
 
 class ChromaVs(VectoreStoreInf):
-    client: object = None
-    vectorstore: object = None
 
     def __init__(self, embedding_model: object) -> None:
         import faiss
@@ -112,3 +109,9 @@ class ChromaVs(VectoreStoreInf):
                 collection_name=collection_name, embedding_function=self.embedding_model
             )
         return self.vectorstore
+
+    def search(self, query: str, **kwargs):
+        """"""
+
+    def delete(self, id: any, **kwargs):
+        """"""

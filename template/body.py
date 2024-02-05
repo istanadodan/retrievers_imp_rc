@@ -25,7 +25,9 @@ def write_answer(answer: str, cb: object):
         for src in srcs:
             st.write(
                 insert_line_feed(
-                    src.page_content + "| page=" + str(src.metadata.get("page", 0))
+                    src.page_content
+                    + " | page="
+                    + str(int(src.metadata.get("page", 0)))
                 )
             )
 

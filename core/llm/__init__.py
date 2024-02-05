@@ -64,5 +64,5 @@ def get_llm(model_name: str = None) -> BaseChatModel:
         )
 
     elif model_name.find("gpt") >= 0:
-        return ChatOpenAI(model=model_name, temperature=0, max_tokens=500)
+        return ChatOpenAI(model=model_name, temperature=0, max_tokens=500, verbose=True)
         # return OpenAI(temperature=0, max_tokens=500)

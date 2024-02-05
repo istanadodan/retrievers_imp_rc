@@ -4,6 +4,7 @@ from langchain_community.vectorstores.faiss import FAISS
 from langchain_community.vectorstores.pinecone import Pinecone
 from langchain_community.vectorstores import VectorStore
 from typing import List
+from cmn.types.vectorstore import VectoreStoreInf
 from core.llm import get_embeddings
 from langchain.docstore.in_memory import InMemoryDocstore
 from .vectorstore import PineconeVs, FaissVs, ChromaVs
@@ -18,7 +19,7 @@ def get_vectorstore_from_type(
     docs: List[Document] = None,
     store: object = InMemoryDocstore(),
     **kwargs,
-) -> any:
+) -> VectoreStoreInf:
     _embedding_model = get_embeddings()
 
     namespace = kwargs.get("namespace")

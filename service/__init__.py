@@ -8,9 +8,11 @@ from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
 from core.llm import get_llm
 from core.db import get_vectorstore_from_type
-from service import multi_query, parent_document, contextual_compression
+from service.retrivers import parent_document
 from enum import Enum, auto
 import logging
+
+from service.retrivers import contextual_compression, multi_query
 
 logging.getLogger("langchain.retrievers.multi_query").setLevel(logging.INFO)
 
@@ -53,20 +55,47 @@ def query(query: str, path: str, query_type: QueryType, k: int = 2):
     if not _retriever:
         return {"result": "문서를 준비하지 못했습니다"}
 
+    from service.tools.mydata import get_mydata_company_info
+    from langchain.agents import create_openai_functions_agent, AgentExecutor
+    from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+    from langchain_core.output_parsers import StrOutputParser, SimpleJsonOutputParser
+
+    _prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", "You are a helpful assistant"),
+            ("user", "{input}"),
+            MessagesPlaceholder("agent_scratchpad"),
+        ]
+    )
+    tools = [get_mydata_company_info]
+    agent = create_openai_functions_agent(tools=tools, llm=get_llm(), prompt=_prompt)
+    agent_executor = AgentExecutor.from_agent_and_tools(
+        agent=agent,
+        tools=tools,
+        verbose=True,
+        handle_parsing_errors=True,
+    )
+
+    # print(agent_executor.invoke({"input": query}))
     template = """Answer the question based only on the following context:
 {context}
+COMANY_INFO: {corp_info}
 Write in Korean.
 Question: {question}
 Answer:
 """
     # LCEL을 사용하여 chain을 만들어본다.
-    from operator import itemgetter
-
-    r_qa = (
-        {
-            "context": _retriever,
-            "question": RunnablePassthrough() | RunnableLambda(lambda x: x["question"]),
-        }
+    _chain = (
+        RunnablePassthrough().assign(
+            corp_info=lambda _query: agent_executor.invoke(
+                {"input": _query["question"]}
+            )
+        )
+        # {
+        # "context": _retriever,
+        # "question": RunnablePassthrough() | RunnableLambda(lambda x: x["question"]),
+        # }
+        | RunnablePassthrough().assign(context=_retriever)
         | RunnableParallel(
             result=PromptTemplate.from_template(template)
             | get_llm()
@@ -81,7 +110,9 @@ Answer:
             }
         )
     )
-    answer = r_qa.invoke({"question": query})
+
+    answer = _chain.invoke({"question": query})
+
     # 자동 쿼리생성하는 retriever
     # r_qa = RetrievalQA.from_llm(
     #     llm=get_llm(),
@@ -100,6 +131,7 @@ def persist_vectorstore(path: str):
     from service.utils.text_split import split_documents
     from service.loader.pdf_loader import get_documents
     import os
+    from cmn.types.vectorstore import VectoreStoreInf
 
     # 문서 load
     docs = get_documents(path)
@@ -107,9 +139,10 @@ def persist_vectorstore(path: str):
     split_docs = split_documents(docs)
 
     # vectorstore를 불러온다.
-    _vstore = get_vectorstore_from_type(
+    _vstore: VectoreStoreInf = get_vectorstore_from_type(
         vd_name="pinecone", index_name="manuals", namespace=os.path.basename(path)
     )
     # save to db
-    _vstore.add_documents(split_docs)
+    _vstore.add(split_docs)
     # 저장한다.
+    _vstore.save()

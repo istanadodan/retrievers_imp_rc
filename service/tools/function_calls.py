@@ -39,8 +39,14 @@ def send_back_email_for_complaint(email: str, subject: str, body: str) -> str:
 
 def query2(prompt: str):
     # from core.llm import get_llm
-    from langchain.agents import create_openai_functions_agent, AgentExecutor
-    from langchain_community.chat_models import ChatOpenAI
+    from langchain.agents import (
+        create_openai_functions_agent,
+        AgentExecutor,
+        initialize_agent,
+    )
+
+    # from langchain_community.chat_models import ChatOpenAI
+    from langchain_openai import ChatOpenAI
     from langchain.prompts import (
         ChatPromptTemplate,
         MessagesPlaceholder,
@@ -72,7 +78,8 @@ def query2(prompt: str):
     #     ),
     # ]
     messages = [
-        ("system", "You are a helpful assistant."),
+        ("system", "You are a helpful assistant"),
+        MessagesPlaceholder(variable_name="chat_history", optional=True),
         ("user", "{input}"),
         MessagesPlaceholder(variable_name="agent_scratchpad"),
     ]
@@ -83,7 +90,14 @@ def query2(prompt: str):
     prompt_ = ChatPromptTemplate.from_messages(messages)
     agent = create_openai_functions_agent(llm, tools, prompt_)
     callbacks = []
-    agent_executor = AgentExecutor(
+    # agent_executor = AgentExecutor(
+    #     agent=agent,
+    #     tools=tools,
+    #     verbose=True,
+    #     handle_parsing_errors=True,
+    #     callbacks=callbacks,
+    # )
+    agent_executor = AgentExecutor.from_agent_and_tools(
         agent=agent,
         tools=tools,
         verbose=True,
@@ -91,7 +105,22 @@ def query2(prompt: str):
         callbacks=callbacks,
     )
 
-    answer = agent_executor.invoke({"input": prompt})
+    # agent2 = initialize_agent(agent=agent, llm=llm)
+    from langchain_core.messages import HumanMessage, AIMessage
+
+    answer = agent_executor.invoke(
+        {
+            "input": prompt,
+            "chat_history": [
+                HumanMessage(content="hi! my name is bob"),
+                AIMessage(content="Hello Bob! How can I assist you today?"),
+            ],
+            # "chat_history": [
+            #     ("user", "hi! my name is bob"),
+            #     ("assistant", "hello bob! how can i assist you today?"),
+            # ],
+        }
+    )
     print(answer["output"])
 
 
@@ -159,6 +188,26 @@ def ask_and_reply(prompt):
 
     """Give LLM a given prompt and get an answer."""
 
+    function_descriptions = [
+        {
+            "name": "get_flight_info",
+            "description": "Get flight information between two locations",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "loc_origin": {
+                        "type": "string",
+                        "description": "The departure airport, e.g. DUS",
+                    },
+                    "loc_destination": {
+                        "type": "string",
+                        "description": "The destination airport, e.g. HAM",
+                    },
+                },
+                "required": ["loc_origin", "loc_destination"],
+            },
+        }
+    ]
     completion = openai.Client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
