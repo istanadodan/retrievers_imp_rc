@@ -6,9 +6,7 @@ from langchain.retrievers.document_compressors import (
 import logging
 from core.llm import get_llm, get_embeddings
 from core.query import get_retriever
-import re, os
-
-logging.getLogger("langchain.retrievers.multi_query").setLevel(logging.INFO)
+import re
 
 
 def query(query: str, doc_path: str, k: int = 1):

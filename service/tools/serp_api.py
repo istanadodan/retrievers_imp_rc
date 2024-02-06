@@ -20,20 +20,24 @@ def get_query_from_serpapi(query: str) -> List[Dict[str, object]]:
         "gl": "kr",
         "google_domain": "google.co.kr",
         "api_key": os.getenv("SERP_API_KEY"),
-        "tbm": "nws",
-        "num": 3,
+        "num": 1,
+        "engine": "google_news",
     }
 
     search = GoogleSearch(params)
     result = search.get_dict()
-    # print(results)
+
     news = list(
         map(
-            lambda x: x.pop("thumbnail"),
+            # lambda x: {key: val for key, val in x.items() if key != "thumbnail"},
+            # lambda news: dict(
+            #     filter(lambda item: item[0] != "thumbnail", news.items())
+            # ),
+            lambda x: x["title"],
             result.get("news_results", []),
         )
     )
-    return json.dumps(news)
+    return json.dumps(news[:10])
 
 
 if __name__ == "__main__":

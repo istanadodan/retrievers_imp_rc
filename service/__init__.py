@@ -8,13 +8,25 @@ from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
 from core.llm import get_llm
 from core.db import get_vectorstore_from_type
-from service.retrivers import parent_document
+from service.retrievers import parent_document, contextual_compression, multi_query
 from enum import Enum, auto
 import logging
+from langchain.callbacks.base import BaseCallbackHandler
+from langchain_core.output_parsers import StrOutputParser, SimpleJsonOutputParser
+from service.tools import serp_api, mydata
+from langchain.agents import create_openai_functions_agent, AgentExecutor
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.output_parsers import StrOutputParser, SimpleJsonOutputParser
+from langchain.schema.callbacks.stdout import StdOutCallbackHandler
+from langchain_core.runnables import (
+    RunnablePassthrough,
+    RunnableLambda,
+    RunnableParallel,
+    RunnableConfig,
+)
+from service.callbacks.prompt_callabck import PromptStdOutCallbackHandler
 
-from service.retrivers import contextual_compression, multi_query
-
-logging.getLogger("langchain.retrievers.multi_query").setLevel(logging.INFO)
+config = RunnableConfig(callbacks=[PromptStdOutCallbackHandler()])
 
 
 class QueryType(Enum):
@@ -37,12 +49,6 @@ def simple_query(query: str):
 
 
 def query(query: str, path: str, query_type: QueryType, k: int = 2):
-    from langchain_core.runnables import (
-        RunnablePassthrough,
-        RunnableLambda,
-        RunnableParallel,
-    )
-    from langchain_core.output_parsers import StrOutputParser, SimpleJsonOutputParser
 
     query_type_map = {
         QueryType.Multi_Query: multi_query.mquery_retriever,
@@ -55,15 +61,12 @@ def query(query: str, path: str, query_type: QueryType, k: int = 2):
     if not _retriever:
         return {"result": "문서를 준비하지 못했습니다"}
 
-    from service.tools import serp_api, mydata
-
-    from langchain.agents import create_openai_functions_agent, AgentExecutor
-    from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-    from langchain_core.output_parsers import StrOutputParser, SimpleJsonOutputParser
-
     _prompt = ChatPromptTemplate.from_messages(
         [
-            ("system", "You are a helpful assistant"),
+            (
+                "system",
+                "If the user query is not clear, you must respond firmly with 'Nothing'",
+            ),
             ("user", "{input}"),
             MessagesPlaceholder("agent_scratchpad"),
         ]
@@ -78,9 +81,9 @@ def query(query: str, path: str, query_type: QueryType, k: int = 2):
     )
 
     # print(agent_executor.invoke({"input": query}))
-    template = """Answer the question based only on the following context:
+    template = """Answer the question based only on the following context and additional_info only if it is usefull:
 {context}
-COMANY_INFO: {corp_info}
+additional_info: {addtional_info}
 Write in Korean.
 Question: {question}
 Answer:
@@ -88,20 +91,26 @@ Answer:
     # LCEL을 사용하여 chain을 만들어본다.
     _chain = (
         RunnablePassthrough().assign(
-            corp_info=lambda _query: agent_executor.invoke(
+            addtional_info=lambda _query: agent_executor.invoke(
                 {"input": _query["question"]}
-            )
+            )["output"]
         )
         # {
         # "context": _retriever,
         # "question": RunnablePassthrough() | RunnableLambda(lambda x: x["question"]),
         # }
-        | RunnablePassthrough().assign(context=_retriever)
+        | RunnablePassthrough().assign(
+            retrieved_docs=lambda x: _retriever.get_relevant_documents(x["question"]),
+        )
+        | RunnablePassthrough().assign(
+            context=lambda x: "context:\n"
+            + "\ncontext:\n".join([doc.page_content for doc in x["retrieved_docs"]]),
+        )
         | RunnableParallel(
             result=PromptTemplate.from_template(template)
             | get_llm()
             | StrOutputParser(),
-            source_documents=RunnableLambda(lambda x: x["context"]),
+            source_documents=RunnableLambda(lambda x: x["retrieved_docs"]),
         )
         | RunnableLambda(
             lambda answer: {
@@ -112,7 +121,7 @@ Answer:
         )
     )
 
-    answer = _chain.invoke({"question": query})
+    answer = _chain.invoke({"question": query}, config=config)
 
     # 자동 쿼리생성하는 retriever
     # r_qa = RetrievalQA.from_llm(
