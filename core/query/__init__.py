@@ -14,18 +14,18 @@ def get_retriever(search_type: str = "mmr", k: int = 2, **kwargs):
     _chunk_size = kwargs.get("chunk_size", 300)
     _chunk_overlap = kwargs.get("chunk_overlap", 0)
 
-    _vs = get_vectorstore_from_type(**kwargs)
+    _vs_wrapper = get_vectorstore_from_type(**kwargs)
 
-    if not has_namespace(_vs, _namespace):
+    if not has_namespace(_vs_wrapper, _namespace):
         if not _path.name:
             raise Exception("파일 경로가 입력되지 않았습니다.")
 
         # docs취득
         kwargs["docs"] = get_docs_from_persist(_path, _chunk_size, _chunk_overlap)
-        _vs = get_vectorstore_from_type(**kwargs)
+        _vs_wrapper = get_vectorstore_from_type(**kwargs)
 
     _retriever = VectorStoreRetriever(
-        vectorstore=_vs,
+        vectorstore=_vs_wrapper.get(),
         search_type=search_type,
         search_kwargs={"k": k},
     )
@@ -34,6 +34,8 @@ def get_retriever(search_type: str = "mmr", k: int = 2, **kwargs):
 
 
 def has_namespace(vs: Pinecone, namespace):
+    if not isinstance(vs, Pinecone):
+        return True
     return namespace in vs._index.describe_index_stats().to_dict()["namespaces"]
 
 

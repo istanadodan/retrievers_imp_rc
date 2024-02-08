@@ -137,7 +137,7 @@ Answer:
     return answer
 
 
-def persist_vectorstore(path: str):
+def persist_vectorstore(path: str, vector_name: str = "chroma"):
     from service.utils.text_split import split_documents
     from service.loader.pdf_loader import get_documents
     import os
@@ -148,11 +148,15 @@ def persist_vectorstore(path: str):
     # docs생성
     split_docs = split_documents(docs)
 
+    kwargs = {
+        "vd_name": vector_name,
+        "index_name": "manuals",
+        "namespace": os.path.basename(path),
+        "docs": split_docs,
+    }
     # vectorstore를 불러온다.
-    _vstore: VectoreStoreInf = get_vectorstore_from_type(
-        vd_name="pinecone", index_name="manuals", namespace=os.path.basename(path)
-    )
+    _vstore: VectoreStoreInf = get_vectorstore_from_type(**kwargs)
     # save to db
-    _vstore.add(split_docs)
+    # _vstore.add(split_docs, **kwargs)
     # 저장한다.
-    _vstore.save()
+    # _vstore.save(**kwargs)

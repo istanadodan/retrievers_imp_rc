@@ -11,7 +11,7 @@ def get_mydata_company_info(corp_code: str):
         "corp_code": corp_code,
     }
     # Example output returned from an API or database
-    if corp_code == "123456":
+    if corp_code == "12345":
         company_info = {
             "corp_code": corp_code,
             "corp_name": "Example Corp",

@@ -43,12 +43,12 @@ def pdoc_retriever(doc_path: str, k: int = 3):
     from service.utils.retrieve_params import get_default_vsparams
 
     kwargs = get_default_vsparams(doc_path=doc_path, vd_name="chroma")
-    vectorstore = get_vectorstore_from_type(**kwargs)
+    _vs_wrapper = get_vectorstore_from_type(**kwargs)
     # 내부 docstore 작성 시, cache 메모리
     store = InMemoryStore()
 
     retriever = ParentDocumentRetriever(
-        vectorstore=vectorstore,
+        vectorstore=_vs_wrapper.get(),
         docstore=store,
         parent_splitter=get_parent_splitter(350),
         child_splitter=get_child_splitter(100),

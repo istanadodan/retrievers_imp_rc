@@ -9,10 +9,14 @@ class VectoreStoreInf(ABC):
     vectorstore: object = None
 
     @abstractmethod
-    def get(self, **kwargs) -> VectorStore:
+    def create(self, **kwargs) -> VectorStore:
         """"""
 
-    def add(self, docs: List[Document]):
+    def get(self) -> VectorStore:
+        """"""
+        return self.vectorstore
+
+    def add(self, docs: List[Document], **kwargs):
         """"""
         self.vectorstore.add_documents(docs)
 
@@ -22,7 +26,4 @@ class VectoreStoreInf(ABC):
 
     @abstractmethod
     def delete(self, id: any, **kwargs):
-        """"""
-
-    def save(self, **kwargs):
         """"""

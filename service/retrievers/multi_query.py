@@ -4,7 +4,7 @@ from langchain.retrievers import MultiQueryRetriever
 import logging
 from core.llm import get_llm
 from core.query import get_retriever
-import re, os
+import re
 
 logging.getLogger("langchain.retrievers.multi_query").setLevel(logging.INFO)
 

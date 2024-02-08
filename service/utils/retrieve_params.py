@@ -1,5 +1,8 @@
 from pathlib import Path
 from typing import Dict
+import os
+
+DEFAULT_VD_NAME = os.getenv("DEFAULT_VD_NAME")
 
 
 def get_default_vsparams(doc_path: str, **kwargs) -> Dict[str, object]:
@@ -8,7 +11,7 @@ def get_default_vsparams(doc_path: str, **kwargs) -> Dict[str, object]:
         raise ValueError("Path does not exist")
 
     params = {
-        "vd_name": kwargs.get("vd_name", "pinecone"),
+        "vd_name": kwargs.get("vd_name", DEFAULT_VD_NAME),
         "index_name": kwargs.get("index_name", "manuals"),
         "namespace": _path.name,
         "doc_path": str(_path.resolve()),

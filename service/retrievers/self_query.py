@@ -3,6 +3,7 @@
     문서별 meta정보(AttributeInfo)를 지정.
     일반 PDF등 문서에는 대응이 난해.
 """
+
 from typing import List
 from langchain.docstore.document import Document
 from langchain.retrievers import SelfQueryRetriever
@@ -14,14 +15,14 @@ def query(query: str):
     from core.llm import get_llm
 
     docs: List[Document] = get_documents()
-    vectorstore = get_vectorstore_from_type(vd_name="chroma", docs=docs)
+    _vs_wrapper = get_vectorstore_from_type(vd_name="chroma", docs=docs)
 
     # 메타항목명, 타입, 제한사항 기술
     search_schema = get_fields_info()
     document_content_description = "Brief summary of a movie"
     retriever = SelfQueryRetriever.from_llm(
         llm=get_llm(),
-        vectorstore=vectorstore,
+        vectorstore=_vs_wrapper.get(),
         document_contents=document_content_description,
         metadata_field_info=search_schema,
         verbose=True,
