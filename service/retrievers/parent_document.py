@@ -11,7 +11,7 @@ from langchain.docstore.document import Document
 from langchain.retrievers import ParentDocumentRetriever
 from core.db import get_vectorstore_from_type
 from service.loader import pdf_loader
-from service.utils.text_split import get_child_splitter, get_parent_splitter
+from service.utils.text_split import get_splitter
 from langchain.storage import InMemoryStore
 import logging
 
@@ -50,8 +50,8 @@ def pdoc_retriever(doc_path: str, k: int = 3):
     retriever = ParentDocumentRetriever(
         vectorstore=_vs_wrapper.get(),
         docstore=store,
-        parent_splitter=get_parent_splitter(350),
-        child_splitter=get_child_splitter(100),
+        parent_splitter=get_splitter(350),
+        child_splitter=get_splitter(100),
         search_kwargs={"k": k},
         kwargs={"verbose": True},
     )

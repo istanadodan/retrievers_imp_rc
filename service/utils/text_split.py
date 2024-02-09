@@ -3,12 +3,10 @@ from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 
-def get_child_splitter(chunk_size: int = 200):
-    return RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=0)
-
-
-def get_parent_splitter(chunk_size: int = 800):
-    return RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=0)
+def get_splitter(chunk_size: int = 200, chunk_overlap=0):
+    return RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size, chunk_overlap=chunk_overlap
+    )
 
 
 def split_documents(
@@ -16,7 +14,4 @@ def split_documents(
 ):
     if not docs:
         return []
-    _splitter = RecursiveCharacterTextSplitter(
-        chunk_size=chunk_size, chunk_overlap=chunk_overlap
-    )
-    return _splitter.split_documents(docs)
+    return get_splitter(chunk_size, chunk_overlap).split_documents(docs)

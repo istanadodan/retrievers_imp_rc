@@ -5,6 +5,8 @@ from utils import return_inactive
 def attach_sidebar(st: streamlit):
     import utils.file as fileUtils
 
+    _filelist = fileUtils.filelist()
+
     with st.sidebar:
         with st.expander("파일 업로드"):
             upload_file = st.file_uploader(
@@ -19,7 +21,6 @@ def attach_sidebar(st: streamlit):
                 # vectorstore에 저장한다.
                 persist_vectorstore(persist_path)
 
-        _filelist = fileUtils.filelist()
         with st.expander("파일목록", expanded=len(_filelist) > 0):
             selected_file = st.radio(
                 "업로드 파일", options=map(lambda x: x[0], _filelist), index=None

@@ -8,16 +8,17 @@ from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
 from core.llm import get_llm
 from core.db import get_vectorstore_from_type
-from service.retrievers import parent_document, contextual_compression, multi_query
+from service.retrievers import (
+    parent_document,
+    contextual_compression,
+    multi_query,
+    ensembles,
+)
 from enum import Enum, auto
-import logging
-from langchain.callbacks.base import BaseCallbackHandler
-from langchain_core.output_parsers import StrOutputParser, SimpleJsonOutputParser
+from langchain_core.output_parsers import StrOutputParser
 from service.tools import serp_api, mydata
 from langchain.agents import create_openai_functions_agent, AgentExecutor
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.output_parsers import StrOutputParser, SimpleJsonOutputParser
-from langchain.schema.callbacks.stdout import StdOutCallbackHandler
 from langchain_core.runnables import (
     RunnablePassthrough,
     RunnableLambda,
@@ -25,8 +26,12 @@ from langchain_core.runnables import (
     RunnableConfig,
 )
 from service.callbacks.prompt_callabck import PromptStdOutCallbackHandler
+from service.callbacks.reorder_callback import DocumentReorderCallbackHandler
+from langchain.document_transformers.long_context_reorder import LongContextReorder
 
-config = RunnableConfig(callbacks=[PromptStdOutCallbackHandler()])
+config = RunnableConfig(
+    callbacks=[PromptStdOutCallbackHandler(), DocumentReorderCallbackHandler()]
+)
 
 
 class QueryType(Enum):
@@ -34,6 +39,7 @@ class QueryType(Enum):
     Contextual_Compression = auto()
     Parent_Document = auto()
     Simple_Query = auto()
+    Ensembles = auto()
 
 
 def simple_query(query: str):
@@ -54,6 +60,7 @@ def query(query: str, path: str, query_type: QueryType, k: int = 2):
         QueryType.Multi_Query: multi_query.mquery_retriever,
         QueryType.Contextual_Compression: contextual_compression.compression_retriever,
         QueryType.Parent_Document: parent_document.pdoc_retriever,
+        QueryType.Ensembles: ensembles.ensembles_retriever,
     }
 
     _retriever = query_type_map[query_type](path, k=k)
@@ -89,6 +96,7 @@ Question: {question}
 Answer:
 """
     # LCEL을 사용하여 chain을 만들어본다.
+    reordering = LongContextReorder()
     _chain = (
         RunnablePassthrough().assign(
             addtional_info=lambda _query: agent_executor.invoke(
@@ -104,7 +112,12 @@ Answer:
         )
         | RunnablePassthrough().assign(
             context=lambda x: "context:\n"
-            + "\ncontext:\n".join([doc.page_content for doc in x["retrieved_docs"]]),
+            + "\ncontext:\n".join(
+                [
+                    doc.page_content
+                    for doc in reordering.transform_documents(x["retrieved_docs"])
+                ]
+            ),
         )
         | RunnableParallel(
             result=PromptTemplate.from_template(template)

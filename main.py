@@ -47,8 +47,14 @@ def main():
             top_k = st.session_state.top_k if st.session_state.top_k else 2
 
             # 탭이 1개인 경우, with문 실행 오류
-            tab1, tab2, t3, tab4 = st.tabs(
-                ["multi-query", "parent-node", "context-comprs", "simple queury"]
+            tab1, tab2, tab3, tab4, tab5 = st.tabs(
+                [
+                    "multi-query",
+                    "parent-node",
+                    "context-comprs",
+                    "simple queury",
+                    "ensembles",
+                ]
             )
 
             file_path = (
@@ -98,7 +104,7 @@ def main():
                         else:
                             write_warning("파일이 선택되지 않았습니다.")
 
-            with t3:
+            with tab3:
                 """
                 조회결과를 LLM으로 압축하거나 조회결과의 필터링을 한다.
                 """
@@ -137,6 +143,29 @@ def main():
                         )
 
                         write_answer(answer=answer, cb=cb)
+
+            with tab5:
+                """
+                하이브리드 검색
+                """
+                user_question = st.text_input(
+                    "파일내용에 대해 질의해 주세요.",
+                    on_change=return_inactive,
+                    key="q5",
+                )
+                if st.button("실행", key="b5") and user_question:
+                    with st.spinner():
+                        if file_path:
+                            answer = query(
+                                user_question,
+                                file_path,
+                                query_type=QueryType.Ensembles,
+                                k=top_k,
+                            )
+
+                            write_answer(answer=answer, cb=cb)
+                        else:
+                            write_warning("파일이 선택되지 않았습니다.")
 
     except Exception as e:
         write_answer(answer=dict(result=e), cb=cb)

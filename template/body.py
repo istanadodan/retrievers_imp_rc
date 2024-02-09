@@ -3,8 +3,9 @@ import time
 
 
 def write_answer(answer: str, cb: object):
-    if not answer:
-        return
+    answer = answer if answer else st.session_state.answer
+
+    st.session_state.answer = answer
     with st.container(border=True):
         # with st.empty():
         #     for seconds in range(10):
