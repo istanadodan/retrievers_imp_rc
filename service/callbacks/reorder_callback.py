@@ -37,4 +37,4 @@ class DocumentReorderCallbackHandler(BaseCallbackHandler):
         **kwargs: Any,
     ) -> Any:
         """Run when Retriever ends running."""
-        logging.info("relevant document : ", documents)
+        logging.info(f"relevant document : {documents}")

@@ -14,7 +14,7 @@ from service.retrievers import (
     multi_query,
     ensembles,
 )
-from enum import Enum, auto
+from langchain.memory import ConversationBufferWindowMemory
 from langchain_core.output_parsers import StrOutputParser
 from service.tools import serp_api, mydata
 from langchain.agents import create_openai_functions_agent, AgentExecutor
@@ -28,18 +28,21 @@ from langchain_core.runnables import (
 from service.callbacks.prompt_callabck import PromptStdOutCallbackHandler
 from service.callbacks.reorder_callback import DocumentReorderCallbackHandler
 from langchain.document_transformers.long_context_reorder import LongContextReorder
+from cmn.types.query import QueryType
+from langchain_core.messages import HumanMessage, AIMessage
 
 config = RunnableConfig(
     callbacks=[PromptStdOutCallbackHandler(), DocumentReorderCallbackHandler()]
 )
 
-
-class QueryType(Enum):
-    Multi_Query = auto()
-    Contextual_Compression = auto()
-    Parent_Document = auto()
-    Simple_Query = auto()
-    Ensembles = auto()
+chat_memory = ConversationBufferWindowMemory(k=5, memory_key="chat_history")
+chat_history = []
+query_type_map = {
+    QueryType.Multi_Query: multi_query.mquery_retriever,
+    QueryType.Contextual_Compression: contextual_compression.compression_retriever,
+    QueryType.Parent_Document: parent_document.pdoc_retriever,
+    QueryType.Ensembles: ensembles.ensembles_retriever,
+}
 
 
 def simple_query(query: str):
@@ -55,13 +58,6 @@ def simple_query(query: str):
 
 
 def query(query: str, path: str, query_type: QueryType, k: int = 2):
-
-    query_type_map = {
-        QueryType.Multi_Query: multi_query.mquery_retriever,
-        QueryType.Contextual_Compression: contextual_compression.compression_retriever,
-        QueryType.Parent_Document: parent_document.pdoc_retriever,
-        QueryType.Ensembles: ensembles.ensembles_retriever,
-    }
 
     _retriever = query_type_map[query_type](path, k=k)
     # 문서 포함 retriever
@@ -86,15 +82,29 @@ def query(query: str, path: str, query_type: QueryType, k: int = 2):
         verbose=True,
         handle_parsing_errors=True,
     )
-
-    # print(agent_executor.invoke({"input": query}))
-    template = """Answer the question based only on the following context and additional_info only if it is usefull:
-{context}
-additional_info: {addtional_info}
-Write in Korean.
-Question: {question}
+    _chat_prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                """Answer the question based only on the following contexts and additional_info only if it is usefull:",{context}
+Additional_Info: {addtional_info}
+Write an answer in Korean.
 Answer:
-"""
+""",
+            ),
+            MessagesPlaceholder(variable_name="chat_history"),
+            ("user", "{question}"),
+        ]
+    )
+    #     template = """Answer the question based only on the following contexts and additional_info only if it is usefull:
+    # {context}
+    # Additional_Info: {addtional_info}
+    # Chat_History: {chat_history}
+    # Question: {question}
+    # Write an answer in Korean.
+    # Answer:
+    # """
+
     # LCEL을 사용하여 chain을 만들어본다.
     reordering = LongContextReorder()
     _chain = (
@@ -108,7 +118,7 @@ Answer:
         # "question": RunnablePassthrough() | RunnableLambda(lambda x: x["question"]),
         # }
         | RunnablePassthrough().assign(
-            retrieved_docs=lambda x: _retriever.get_relevant_documents(x["question"]),
+            retrieved_docs=lambda x: _retriever.invoke(input=x["question"]),
         )
         | RunnablePassthrough().assign(
             context=lambda x: "context:\n"
@@ -120,9 +130,7 @@ Answer:
             ),
         )
         | RunnableParallel(
-            result=PromptTemplate.from_template(template)
-            | get_llm()
-            | StrOutputParser(),
+            result=_chat_prompt | get_llm() | StrOutputParser(),
             source_documents=RunnableLambda(lambda x: x["retrieved_docs"]),
         )
         | RunnableLambda(
@@ -134,7 +142,14 @@ Answer:
         )
     )
 
-    answer = _chain.invoke({"question": query}, config=config)
+    answer = _chain.invoke(
+        {"question": query, "chat_history": chat_history[:3]},
+        config=config,
+    )
+
+    chat_history.extend(
+        [HumanMessage(content=query), AIMessage(content=answer["result"])]
+    )
 
     # 자동 쿼리생성하는 retriever
     # r_qa = RetrievalQA.from_llm(
