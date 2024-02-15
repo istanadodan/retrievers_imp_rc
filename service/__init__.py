@@ -3,22 +3,10 @@
     질의 갯수는 default promptTemplate에 존재.
 """
 
-from langchain.chains.retrieval_qa.base import RetrievalQA
-from langchain.chains.llm import LLMChain
-from langchain.prompts import PromptTemplate
+from typing import List
 from core.llm import get_llm
-from core.db import get_vectorstore_from_type
-from service.retrievers import (
-    parent_document,
-    contextual_compression,
-    multi_query,
-    ensembles,
-)
-from langchain.memory import ConversationBufferWindowMemory
-from langchain_core.output_parsers import StrOutputParser
-from service.tools import serp_api, mydata
-from langchain.agents import create_openai_functions_agent, AgentExecutor
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.prompts import PromptTemplate
+from cmn.types.query import QueryType
 from langchain_core.runnables import (
     RunnablePassthrough,
     RunnableLambda,
@@ -27,14 +15,18 @@ from langchain_core.runnables import (
 )
 from service.callbacks.prompt_callabck import PromptStdOutCallbackHandler
 from service.callbacks.reorder_callback import DocumentReorderCallbackHandler
-from langchain.document_transformers.long_context_reorder import LongContextReorder
-from cmn.types.query import QueryType
-from langchain_core.messages import HumanMessage, AIMessage
+from service.retrievers import (
+    parent_document,
+    contextual_compression,
+    multi_query,
+    ensembles,
+)
+from core.db import get_vectorstore_from_type
+from langchain.memory import ConversationBufferWindowMemory
 
 config = RunnableConfig(
     callbacks=[PromptStdOutCallbackHandler(), DocumentReorderCallbackHandler()]
 )
-
 chat_memory = ConversationBufferWindowMemory(k=5, memory_key="chat_history")
 chat_history = []
 query_type_map = {
@@ -46,6 +38,8 @@ query_type_map = {
 
 
 def simple_query(query: str):
+    from langchain.chains.llm import LLMChain
+
     prompt_template = (
         "Tell me a simple answer to my question. \nQuestion: {query}\nAnswer:"
     )
@@ -54,10 +48,106 @@ def simple_query(query: str):
         llm=get_llm(), prompt=prompt, output_key="result", verbose=True
     )
     answer = simple_chain.invoke({"query": query})
-    return {x: answer[x] for x in iter(answer) if x in ["result", "source_documents"]}
+    return query, {
+        x: answer[x] for x in iter(answer) if x in ["result", "source_documents"]
+    }
+
+
+def webpage_summary(url: str, keyword: str, engine: QueryType, top_k: int):
+    from service.loader import web_loader
+    from pathlib import Path
+    import re
+    import datetime
+
+    docs: List = web_loader.get_documents(url=url)
+    save_path = Path(
+        f"./public/url_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    )
+    with open(save_path, encoding="utf-8", mode="w") as file:
+        for doc in docs:
+            if "." not in doc.page_content:
+                continue
+            _doc = re.sub(r"\n+", "\n", doc.page_content)
+            file.write(_doc + "/n")
+
+    return doc_summary(
+        keyword,
+        save_path,
+        engine=engine,
+        top_k=top_k,
+    )
+
+
+def doc_summary(keyword: str, path: str, engine: QueryType, top_k: int, **kwargs):
+    from langchain.chains.summarize import load_summarize_chain
+    from service.retrievers import multi_query, parent_document
+
+    docs: List = []
+    if engine == QueryType.Parent_Document:
+        docs = parent_document.query(query=keyword, doc_path=path, k=top_k)
+    else:
+        docs = multi_query.query(query=keyword, doc_path=path, k=top_k)
+
+    map_prompt_template = """
+Please provide a concise summary of:
+{text}
+Requirements for Creating a Summary: 
+{query}
+Essential:
+Rule 1. not generate any further content when there is no relevant information
+Rule 2. Do not omit the main topic or entity that is the focus in the original passage.
+Rule 3. summarize this text in 100 words with key details.
+"""
+    # 규칙 1. 반드시 주요 keyword가 포함된 문장으로 작성
+    # 규칙 2. 주어를 빠뜨리지 않고 작성
+    combine_prompt_template = """
+Integrate these summaries into a coherent text: 
+{text}
+Write summaries by including repeated or important keywords in the presented context in Korean.
+Requirements for Creating a Summary: 
+{query}
+Essential:
+Rule 1. not generate any further content when there is no relevant information
+Rule 2. Do not omit the main topic or entity that is the focus in the original passage.
+Rule 3. summarize this text in over 300 words with key details.
+Summary:
+"""
+    # keyword = None
+    kwargs = {
+        "llm": get_llm(),
+        "chain_type": "map_reduce",
+        "verbose": True,
+        "memory": chat_memory,
+        "input_key": "text",
+        "output_key": "result",
+        # "return_intermediate_steps": True,
+        "token_max": 1000,
+        "map_prompt": PromptTemplate(
+            template=map_prompt_template,
+            input_variables=["text"],
+            partial_variables={"query": keyword},
+        ),
+        "combine_prompt": PromptTemplate(
+            template=combine_prompt_template,
+            input_variables=["text"],
+            partial_variables={"query": keyword},
+        ),
+    }
+    summary_chain = load_summarize_chain(**kwargs)
+    summary_result = summary_chain.invoke({"text": docs}, return_only_outputs=True)
+    return keyword, summary_result
 
 
 def query(query: str, path: str, query_type: QueryType, k: int = 2):
+    from langchain_core.output_parsers import StrOutputParser
+    from service.tools import serp_api, mydata
+    from langchain.agents import create_openai_functions_agent, AgentExecutor
+    from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+    from langchain.document_transformers.long_context_reorder import LongContextReorder
+    from langchain_core.messages import HumanMessage, AIMessage
+
+    if not path:
+        return
 
     _retriever = query_type_map[query_type](path, k=k)
     # 문서 포함 retriever
@@ -86,7 +176,8 @@ def query(query: str, path: str, query_type: QueryType, k: int = 2):
         [
             (
                 "system",
-                """Answer the question based only on the following contexts and additional_info only if it is usefull:",{context}
+                """Answer the question based only on the following contexts and additional_info only if it is usefull:
+{context}
 Additional_Info: {addtional_info}
 Write an answer in Korean.
 Answer:
@@ -96,14 +187,6 @@ Answer:
             ("user", "{question}"),
         ]
     )
-    #     template = """Answer the question based only on the following contexts and additional_info only if it is usefull:
-    # {context}
-    # Additional_Info: {addtional_info}
-    # Chat_History: {chat_history}
-    # Question: {question}
-    # Write an answer in Korean.
-    # Answer:
-    # """
 
     # LCEL을 사용하여 chain을 만들어본다.
     reordering = LongContextReorder()
@@ -143,7 +226,7 @@ Answer:
     )
 
     answer = _chain.invoke(
-        {"question": query, "chat_history": chat_history[:3]},
+        {"question": query, "chat_history": chat_history[:1]},
         config=config,
     )
 
@@ -162,7 +245,7 @@ Answer:
     # )
     # answer = r_qa.invoke({"question": query})
     # return {x: answer[x] for x in iter(answer) if x in ["result", "source_documents"]}
-    return answer
+    return query, answer
 
 
 def persist_vectorstore(path: str, vector_name: str = "chroma"):

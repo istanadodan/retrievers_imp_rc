@@ -1,2 +1,2 @@
-def return_inactive():
+def return_inactive(*args, **kwargs):
     return

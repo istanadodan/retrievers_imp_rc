@@ -30,7 +30,8 @@ def query(query: str, doc_path: str, k: int = 3):
     _result = retriever.get_relevant_documents(query)
     logging.info(f"retrieve output:\n{_result}")
 
-    return list(map(lambda x: x.page_content, _result))
+    # return list(map(lambda x: x.page_content, _result))
+    return _result
 
 
 def pdoc_retriever(doc_path: str, k: int = 3):

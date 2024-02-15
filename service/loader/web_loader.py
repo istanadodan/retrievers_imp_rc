@@ -1,5 +1,8 @@
 from langchain_community.document_loaders import WebBaseLoader
+from service.utils.text_split import get_splitter
 
-def get_documents(url:str=None):
-    _l = WebBaseLoader("https://n.news.naver.com/mnews/article/003/0012317114?sid=105")
-    return _l.load()
+
+def get_documents(url: str = None):
+
+    _l = WebBaseLoader(url)
+    return _l.load_and_split(text_splitter=get_splitter())

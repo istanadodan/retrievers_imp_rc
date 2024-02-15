@@ -1,4 +1,3 @@
-from typing import Union
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_community.llms.huggingface_hub import HuggingFaceHub

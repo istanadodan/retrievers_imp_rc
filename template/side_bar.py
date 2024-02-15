@@ -1,9 +1,11 @@
 import streamlit
 from utils import return_inactive
+import pandas as pd
 
 
 def attach_sidebar(st: streamlit):
     import utils.file as fileUtils
+    import time
 
     _filelist = fileUtils.filelist()
 
@@ -21,9 +23,26 @@ def attach_sidebar(st: streamlit):
                 # vectorstore에 저장한다.
                 persist_vectorstore(persist_path)
 
+        # with st.expander("데이터 업로드"):
+        # data_df = pd.DataFrame({'index':['a','b'], 'data':[True, False]})
+        #     st.data_editor(
+        #         data_df,
+        #         column_config={
+        #             "index": st.column_config.TextColumn("라벨"),
+        #             "data": st.column_config.CheckboxColumn(
+        #                 "선택", width="medium", default=False
+        #             ),
+        #         },
+        #         disabled=["index"],
+        #         hide_index=True,
+        #     )
+
         with st.expander("파일목록", expanded=len(_filelist) > 0):
             selected_file = st.radio(
-                "업로드 파일", options=map(lambda x: x[0], _filelist), index=None
+                "FILE",
+                options=map(lambda x: x[0], _filelist),
+                index=None,
+                on_change=return_inactive,
             )
 
             if selected_file:
@@ -31,17 +50,7 @@ def attach_sidebar(st: streamlit):
                     filter(lambda x: x[0] == selected_file, _filelist)
                 )[0][1]
 
-        with st.expander("조회옵션", expanded=True):
-            # st.session_state.top_k = st.text_input(label="top-k", value="1")
+        with st.expander("옵션", expanded=False):
             st.session_state.top_k = st.slider(
                 "top-k", 1, 10, on_change=return_inactive
             )
-
-        with st.expander("사용된 토큰", expanded=True):
-            if "token_usage" in st.session_state:
-                for key, val in st.session_state.token_usage.items():
-                    if key.startswith("_"):
-                        continue
-                    if isinstance(val, float):
-                        val = round(val, 7)
-                    st.write(key, " : ", val)
