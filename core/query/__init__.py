@@ -2,10 +2,10 @@ import pathlib
 from typing import List, Union
 from langchain_core.vectorstores import VectorStoreRetriever
 from core.db import get_vectorstore_from_type
-from service.loader.pdf_loader import get_documents
+from service.loaders import get_documents
 from service.utils.text_split import split_documents
 from pathlib import Path
-from langchain_community.vectorstores.pinecone import Pinecone
+from langchain_community.vectorstores import pinecone, chroma
 
 
 def get_retriever(search_type: str = "mmr", k: int = 2, **kwargs):
@@ -14,18 +14,18 @@ def get_retriever(search_type: str = "mmr", k: int = 2, **kwargs):
     _chunk_size = kwargs.get("chunk_size", 300)
     _chunk_overlap = kwargs.get("chunk_overlap", 0)
 
-    _vs_wrapper = get_vectorstore_from_type(**kwargs)
+    vectorstore = get_vectorstore_from_type(**kwargs).get()
 
-    if not has_namespace(_vs_wrapper, _namespace):
+    if not has_namespace(vectorstore, _namespace):
         if not _path.name:
             raise Exception("파일 경로가 입력되지 않았습니다.")
 
         # docs취득
         kwargs["docs"] = get_docs_from_persist(_path, _chunk_size, _chunk_overlap)
-        _vs_wrapper = get_vectorstore_from_type(**kwargs)
+        vectorstore = get_vectorstore_from_type(**kwargs)
 
     _retriever = VectorStoreRetriever(
-        vectorstore=_vs_wrapper.get(),
+        vectorstore=vectorstore,
         search_type=search_type,
         search_kwargs={"k": k},
     )
@@ -33,10 +33,14 @@ def get_retriever(search_type: str = "mmr", k: int = 2, **kwargs):
     return _retriever
 
 
-def has_namespace(vs: Pinecone, namespace):
-    if not isinstance(vs, Pinecone):
-        return True
-    return namespace in vs._index.describe_index_stats().to_dict()["namespaces"]
+def has_namespace(vs: object, namespace):
+    if not isinstance(vs, chroma.Chroma):
+        return (
+            len([_c for _c in vs._client.list_collections() if _c.name == namespace])
+            > 0
+        )
+    elif isinstance(vs, pinecone.Pinecone):
+        return namespace in vs._index.describe_index_stats().to_dict()["namespaces"]
 
 
 def get_docs_from_persist(path: Path, chunk_size: int = 300, chunk_overlap: int = 0):

@@ -10,7 +10,7 @@ from typing import List
 from langchain.docstore.document import Document
 from langchain.retrievers import ParentDocumentRetriever
 from core.db import get_vectorstore_from_type
-from service.loader import pdf_loader
+from service.loaders import get_documents
 from service.utils.text_split import get_splitter
 from langchain.storage import InMemoryStore
 import logging
@@ -36,7 +36,7 @@ def query(query: str, doc_path: str, k: int = 3):
 
 def pdoc_retriever(doc_path: str, k: int = 3):
     # child splitter를 사용한 문서를 vectorstore에 업데이트 한다.
-    docs: List[Document] = pdf_loader.get_documents(doc_path)
+    docs: List[Document] = get_documents(doc_path)
     if not docs:
         return
 
@@ -44,12 +44,12 @@ def pdoc_retriever(doc_path: str, k: int = 3):
     from service.utils.retrieve_params import get_default_vsparams
 
     kwargs = get_default_vsparams(doc_path=doc_path, vd_name="chroma")
-    _vs_wrapper = get_vectorstore_from_type(**kwargs)
+    vectorstore = get_vectorstore_from_type(**kwargs).get()
     # 내부 docstore 작성 시, cache 메모리
     store = InMemoryStore()
 
     retriever = ParentDocumentRetriever(
-        vectorstore=_vs_wrapper.get(),
+        vectorstore=vectorstore,
         docstore=store,
         parent_splitter=get_splitter(350),
         child_splitter=get_splitter(100),
@@ -57,6 +57,7 @@ def pdoc_retriever(doc_path: str, k: int = 3):
         kwargs={"verbose": True},
     )
     # parent/child docstore 생성
-    retriever.add_documents(documents=docs, ids=None)
+    # ids=None 시, 오류
+    retriever.add_documents(documents=docs)
 
     return retriever

@@ -5,7 +5,7 @@ from core.llm import get_llm, get_embeddings
 from core.query import get_retriever
 import re
 
-from service.loader.pdf_loader import get_documents
+from service.loaders import get_documents
 from service.utils.text_split import split_documents
 
 

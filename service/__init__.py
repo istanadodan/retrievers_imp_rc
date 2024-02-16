@@ -23,6 +23,7 @@ from service.retrievers import (
 )
 from core.db import get_vectorstore_from_type
 from langchain.memory import ConversationBufferWindowMemory
+from pathlib import Path
 
 config = RunnableConfig(
     callbacks=[PromptStdOutCallbackHandler(), DocumentReorderCallbackHandler()]
@@ -54,25 +55,23 @@ def simple_query(query: str):
 
 
 def webpage_summary(url: str, keyword: str, engine: QueryType, top_k: int):
-    from service.loader import web_loader
-    from pathlib import Path
+    from service.loaders import get_documents_from_urls
+
     import re
     import datetime
 
-    docs: List = web_loader.get_documents(url=url)
+    docs: List = get_documents_from_urls(urls=[url])
     save_path = Path(
         f"./public/url_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
     )
     with open(save_path, encoding="utf-8", mode="w") as file:
         for doc in docs:
-            if "." not in doc.page_content:
-                continue
             _doc = re.sub(r"\n+", "\n", doc.page_content)
             file.write(_doc + "/n")
 
     return doc_summary(
         keyword,
-        save_path,
+        str(save_path.resolve()),
         engine=engine,
         top_k=top_k,
     )
@@ -103,13 +102,14 @@ Rule 3. summarize this text in 100 words with key details.
     combine_prompt_template = """
 Integrate these summaries into a coherent text: 
 {text}
-Write summaries by including repeated or important keywords in the presented context in Korean.
+Write summaries by including repeated or important keywords in the presented context.
 Requirements for Creating a Summary: 
 {query}
 Essential:
-Rule 1. not generate any further content when there is no relevant information
+Rule 1. Not generate any further content when there is no relevant information
 Rule 2. Do not omit the main topic or entity that is the focus in the original passage.
-Rule 3. summarize this text in over 300 words with key details.
+Rule 3. Summarize this text in over 300 words with key details.
+Rol3 4. You must summarize in Korean. 
 Summary:
 """
     # keyword = None
@@ -250,7 +250,7 @@ Answer:
 
 def persist_vectorstore(path: str, vector_name: str = "chroma"):
     from service.utils.text_split import split_documents
-    from service.loader.pdf_loader import get_documents
+    from service.loaders import get_documents
     import os
     from cmn.types.vectorstore import VectoreStoreInf
 

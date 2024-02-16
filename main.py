@@ -65,7 +65,10 @@ def main():
                 file_path = "_"
                 if st.button("실행", key="b2", type="primary") and user_question:
                     user_qry, answer = webpage_summary(
-                        url, user_question, engine=QueryType.Multi_Query, top_k=top_k
+                        url,
+                        user_question,
+                        engine=QueryType.Parent_Document,
+                        top_k=top_k,
                     )
 
             if user_question and not file_path:
@@ -76,8 +79,7 @@ def main():
                 write_answer(st, cb=cb)
 
     except Exception as e:
-        st.session_state.conversation.append(dict(user=user_qry, ai=str(e)))
-        write_answer(st, cb=cb)
+        logging.error(e)
 
 
 def setup():

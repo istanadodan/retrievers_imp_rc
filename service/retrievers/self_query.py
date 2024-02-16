@@ -14,7 +14,7 @@ def query(query: str):
     from core.db import get_vectorstore_from_type
     from core.llm import get_llm
 
-    docs: List[Document] = get_documents()
+    docs: List[Document] = _get_documents()
     _vs_wrapper = get_vectorstore_from_type(vd_name="chroma", docs=docs)
 
     # 메타항목명, 타입, 제한사항 기술
@@ -61,7 +61,7 @@ def get_fields_info():
     return _schemas
 
 
-def get_documents():
+def _get_documents():
     docs = [
         Document(
             page_content="A bunch of scientists bring back dinosaurs and mayhem breaks llose",
