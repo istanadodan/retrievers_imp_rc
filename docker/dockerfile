@@ -1,0 +1,13 @@
+# PostgreSQL 이미지를 기반으로 함
+FROM postgres:latest
+
+# 환경 변수 설정
+ENV POSTGRES_DB=llmdb
+ENV POSTGRES_USER=istana
+ENV POSTGRES_PASSWORD=istana
+
+# 데이터베이스 초기화 스크립트 복사
+# COPY init.sql /docker-entrypoint-initdb.d/
+
+# 컨테이너 실행 시 포트 오픈
+EXPOSE 5432

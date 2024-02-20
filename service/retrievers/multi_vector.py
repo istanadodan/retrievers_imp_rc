@@ -5,7 +5,7 @@
 """
 
 from typing import List
-from langchain.retrievers import ParentDocumentRetriever
+from langchain.retrievers import MultiVectorRetriever
 from core.db import get_vectorstore_from_type
 from service.utils.text_split import get_splitter
 from langchain.storage import InMemoryStore
@@ -17,7 +17,7 @@ def query(query: str, doc_path: str, k: int = 3):
     # vectorstore = get_vectorstore_from_type(vd_name="chroma")
     # sub_docs = vectorstore.similarity_search(query=query, k=1)
 
-    retriever = pdoc_retriever(doc_path, k=k)
+    retriever = multivector_retriever(doc_path, k=k)
     # logging.info(f"store: {len(list(store.yield_keys()))}")
 
     _result = retriever.get_relevant_documents(query)
@@ -27,24 +27,23 @@ def query(query: str, doc_path: str, k: int = 3):
     return _result
 
 
-def pdoc_retriever(doc_path: str, k: int = 3):
+def multivector_retriever(doc_path: str, k: int = 3):
     from service.utils.retrieve_params import get_default_vsparams
 
     kwargs = get_default_vsparams(doc_path=doc_path)
-    # kwargs["bsave"] = False
     vsclient = get_vectorstore_from_type(**kwargs)
 
-    # 외부메모리에서 가져온다.
+    # 외부 DB로부터 doc를 읽어온다.
+    # 1. original docs, 2. summary_docs
     store = InMemoryStore()
 
-    retriever = ParentDocumentRetriever(
+    retriever = MultiVectorRetriever(
         vectorstore=vsclient.get(),
         docstore=store,
-        # parent_splitter=get_splitter(350),
-        child_splitter=get_splitter(100),
         search_type="mmr",
         search_kwargs={"k": k},
         kwargs={"verbose": True},
+        id_key="doc_id",
     )
 
     return retriever

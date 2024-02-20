@@ -25,9 +25,7 @@ def write_answer(st: streamlit, cb: object):
                     )
                 if c.get("ai"):
                     st.markdown(
-                        bot_template.format(
-                            MSG=insert_line_feed(c.get("ai")["result"])
-                        ),
+                        bot_template.format(MSG=insert_line_feed(c.get("ai"))),
                         unsafe_allow_html=True,
                     )
             # st.markdown(user_template.format(MSG=query), unsafe_allow_html=True)

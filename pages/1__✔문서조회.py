@@ -40,8 +40,7 @@ def main():
                 st.session_state.file_path if "file_path" in st.session_state else None
             )
             # 결과값 초기화
-            answer = {}
-            user_qry = None
+            query_res = (None, None)
             with tab1:
                 user_question = st.text_input(
                     "파일내용에 대해 질의해 주세요.",
@@ -50,7 +49,7 @@ def main():
                 )
 
                 if st.button("실행", key="b1", type="primary") and user_question:
-                    user_qry, answer = query(
+                    query_res = query(
                         user_question,
                         file_path,
                         query_type=QueryType.Multi_Query,
@@ -69,7 +68,7 @@ def main():
                 )
                 if st.button("실행", key="b2", type="secondary") and user_question:
                     with st.spinner():
-                        user_qry, answer = query(
+                        query_res = query(
                             user_question,
                             file_path,
                             query_type=QueryType.Parent_Document,
@@ -87,7 +86,7 @@ def main():
                 )
                 if st.button("실행", key="b3") and user_question:
                     with st.spinner():
-                        user_qry, answer = query(
+                        query_res = query(
                             user_question,
                             file_path,
                             query_type=QueryType.Contextual_Compression,
@@ -105,7 +104,7 @@ def main():
                 )
                 if st.button("실행", key="b4") and user_question:
                     with st.spinner():
-                        user_qry, answer = simple_query(
+                        query_res = simple_query(
                             user_question,
                         )
 
@@ -120,7 +119,7 @@ def main():
                 )
                 if st.button("실행", key="b5") and user_question:
                     with st.spinner():
-                        user_qry, answer = query(
+                        query_res = query(
                             user_question,
                             file_path,
                             query_type=QueryType.Ensembles,
@@ -130,13 +129,14 @@ def main():
             if user_question and not file_path:
                 write_warning("파일이 선택되지 않았습니다.")
 
-            elif answer:
-                st.session_state.conversation.append(dict(user=user_qry, ai=answer))
+            elif query_res[1]:
+                st.session_state.conversation.append(
+                    dict(user=query_res[0], ai=query_res[1])
+                )
                 write_answer(st, cb=cb)
 
     except Exception as e:
-        st.session_state.conversation.append(dict(user=user_question, ai=str(e)))
-        write_answer(st, user_question, dict(result=e), cb=cb)
+        logging.error(f"err: {e}")
 
 
 def setup():

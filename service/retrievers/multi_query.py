@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import List, Union
 from langchain.retrievers import MultiQueryRetriever
 import logging
+from core.db import get_vectorstore_from_type
 from core.llm import get_llm
 from core.query import get_retriever
 import re
@@ -21,7 +22,12 @@ def mquery_retriever(doc_path: str, k: int = 1):
     from service.utils.retrieve_params import get_default_vsparams
 
     kwargs = get_default_vsparams(doc_path=doc_path)
-    _retriever = get_retriever(search_type="mmr", k=k, **kwargs)
+    vsclient = get_vectorstore_from_type(**kwargs)
+
+    _retriever = vsclient.get().as_retriever(
+        search_type="mmr",
+        search_kwargs={"k": k},
+    )
     if not _retriever:
         return
 

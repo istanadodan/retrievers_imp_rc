@@ -15,18 +15,23 @@ from langchain_core.runnables import (
 )
 from service.callbacks.prompt_callabck import PromptStdOutCallbackHandler
 from service.callbacks.reorder_callback import DocumentReorderCallbackHandler
+from service.callbacks import ConsoleCallbackHandler
 from service.retrievers import (
     parent_document,
     contextual_compression,
     multi_query,
     ensembles,
 )
-from core.db import get_vectorstore_from_type
 from langchain.memory import ConversationBufferWindowMemory
+from cmn.types.vectorstore import VectoreStoreInf
 from pathlib import Path
 
 config = RunnableConfig(
-    callbacks=[PromptStdOutCallbackHandler(), DocumentReorderCallbackHandler()]
+    callbacks=[
+        PromptStdOutCallbackHandler(),
+        DocumentReorderCallbackHandler(),
+        ConsoleCallbackHandler(),
+    ]
 )
 chat_memory = ConversationBufferWindowMemory(k=5, memory_key="chat_history")
 chat_history = []
@@ -88,9 +93,11 @@ def doc_summary(keyword: str, path: str, engine: QueryType, top_k: int, **kwargs
         docs = multi_query.query(query=keyword, doc_path=path, k=top_k)
 
     map_prompt_template = """
-Please provide a concise summary of:
+Please provide a concise summary of the following context within the <ctx> tag:
+<ctx>
 {text}
-Requirements for Creating a Summary: 
+</ctx>
+Points of Emphasis During Composition: 
 {query}
 Essential:
 Rule 1. not generate any further content when there is no relevant information
@@ -100,10 +107,12 @@ Rule 3. summarize this text in 100 words with key details.
     # 규칙 1. 반드시 주요 keyword가 포함된 문장으로 작성
     # 규칙 2. 주어를 빠뜨리지 않고 작성
     combine_prompt_template = """
-Integrate these summaries into a coherent text: 
+Integrate these summaries within the <ctx> tag into a coherent text. 
+If there is no context with the <ctx> tag, write only "관련정보를 찾을 수 없습니다.":
+<ctx>
 {text}
-Write summaries by including repeated or important keywords in the presented context.
-Requirements for Creating a Summary: 
+</ctx>
+Points of Emphasis During Composition: 
 {query}
 Essential:
 Rule 1. Not generate any further content when there is no relevant information
@@ -135,7 +144,7 @@ Summary:
     }
     summary_chain = load_summarize_chain(**kwargs)
     summary_result = summary_chain.invoke({"text": docs}, return_only_outputs=True)
-    return keyword, summary_result
+    return keyword, summary_result["result"]
 
 
 def query(query: str, path: str, query_type: QueryType, k: int = 2):
@@ -147,7 +156,7 @@ def query(query: str, path: str, query_type: QueryType, k: int = 2):
     from langchain_core.messages import HumanMessage, AIMessage
 
     if not path:
-        return
+        return (None, None)
 
     _retriever = query_type_map[query_type](path, k=k)
     # 문서 포함 retriever
@@ -245,29 +254,86 @@ Answer:
     # )
     # answer = r_qa.invoke({"question": query})
     # return {x: answer[x] for x in iter(answer) if x in ["result", "source_documents"]}
-    return query, answer
+    return (query, answer["result"])
 
 
-def persist_vectorstore(path: str, vector_name: str = "chroma"):
+def persist_to_vectorstore(
+    path: str, is_pd_retriever: bool, vector_name: str = "chroma"
+):
     from service.utils.text_split import split_documents
     from service.loaders import get_documents
+    from langchain.retrievers import ParentDocumentRetriever
+    from core.db import get_vectorstore_from_type
+    from service.utils.text_split import get_splitter
     import os
-    from cmn.types.vectorstore import VectoreStoreInf
 
     # 문서 load
     docs = get_documents(path)
     # docs생성
-    split_docs = split_documents(docs)
+    split_docs = split_documents(docs, chunk_size=300, chunk_overlap=0)
 
     kwargs = {
         "vd_name": vector_name,
         "index_name": "manuals",
         "namespace": os.path.basename(path),
-        "docs": split_docs,
     }
     # vectorstore를 불러온다.
-    _vstore: VectoreStoreInf = get_vectorstore_from_type(**kwargs)
-    # save to db
+    vsclient: VectoreStoreInf = get_vectorstore_from_type(**kwargs)
+
     # _vstore.add(split_docs, **kwargs)
     # 저장한다.
     # _vstore.save(**kwargs)
+
+    if is_pd_retriever and len(split_docs) > 0:
+        from langchain.storage import InMemoryStore
+        from langchain_community.storage.astradb import AstraDBStore
+        from langchain_astradb import AstraDBVectorStore
+        from core.llm import get_embeddings
+
+        COLLECTION_NAME = os.path.basename(path).split(".")[0]
+        ASTRA_DB_ID = "ce493861-0a04-4778-a125-ab74f95f296e"
+        ASTRA_DB_REGION = "us-east1"
+        ASTRA_DB_KEYSPACE = "public"
+        ASTRA_DB_APPLICATION_TOKEN = "AstraCS:qrjQhItsfzMsLyhxrPUfWCBv:4586d83f6186aef233fe078d0b5ddce7601b744fc126bfb36de421b96b7aa653"
+        ASTRA_DB_API_ENDPOINT = (
+            f"https://{ASTRA_DB_ID}-{ASTRA_DB_REGION}.apps.astra.datastax.com"
+        )
+        # ASTRA_DB_API_ENDPOINT = "https://ce493861-0a04-4778-a125-ab74f95f296e-us-east1.apps.astra.datastax.com"
+        # {
+        #   "clientId": "qrjQhItsfzMsLyhxrPUfWCBv",
+        #   "secret": "C3NIXm2+U_7r3Zndth4NkjhvTqf7Ak9DaSht+eLbjde5m7wRS.uCvy3lAu_YQCOfZl+MxzCsXG-NY_g2QyO0IXih0lc1..7yJxE-R._BzO8CN9hZz3acvBvsixGedFsQ",
+        #   "token": ""
+        # }
+
+        store = AstraDBStore(
+            # embedding=get_embeddings(),
+            collection_name=COLLECTION_NAME,
+            api_endpoint=ASTRA_DB_API_ENDPOINT,
+            token=ASTRA_DB_APPLICATION_TOKEN,
+            namespace=ASTRA_DB_KEYSPACE,
+        )
+
+        tmp_store = InMemoryStore()
+
+        # vectorstore에 문서를 넣으면, 이 값이 parent doc이 되어 버린다.
+        # child splitter를 사용한 문서를 vectorstore에 업데이트 한다.
+        retriever = ParentDocumentRetriever(
+            vectorstore=vsclient.get(),
+            # parent_splitter=get_splitter(350),
+            child_splitter=get_splitter(100),
+            docstore=tmp_store,
+        )
+        # parent/child docstore 생성
+        # ids=None 시, 오류
+        retriever.add_documents(documents=split_docs)
+
+        _store_data = [
+            (k, {"page_content": v.page_content, "metadata": v.metadata})
+            for k, v in tmp_store.store.items()
+        ]
+
+        store.mset(_store_data)
+
+    else:
+        # save to db
+        vsclient.save(split_docs)

@@ -35,5 +35,6 @@ class WebLoader(LoaderType):
             loader = WebBaseLoader(url)
             docs = loader.load_and_split(text_splitter=get_splitter(chunk_size=200))
             self.docs.extend(list(filter(filter_func, map(map_func, docs))))
+            pass
 
         return self.docs

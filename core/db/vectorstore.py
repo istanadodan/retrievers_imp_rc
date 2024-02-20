@@ -2,7 +2,7 @@ from langchain_community.vectorstores.chroma import Chroma
 from langchain_community.vectorstores.faiss import FAISS
 from langchain.docstore.document import Document
 from typing import List
-from cmn.types.vectorstore import VectoreStoreInf
+from cmn.types.vectorstore import VectoreStoreInf, VectoreStoreMixin
 from pathlib import Path
 import os
 
@@ -36,7 +36,7 @@ def select_vectorstore(
         raise ValueError(f"vectorstore_type: {vectorstore_type} is not supported")
 
 
-class PineconeVs(VectoreStoreInf):
+class PineconeVs(VectoreStoreMixin, VectoreStoreInf):
 
     def __init__(self, index_name: str, embedding_model: object) -> None:
         import pinecone
@@ -49,22 +49,14 @@ class PineconeVs(VectoreStoreInf):
         # 인덱스 존재 여부를 확인하고 없으면 생성.
         self._check_and_create_index()
 
-    def create(self, namesapce: str, docs: List[any] = None):
+    def create(self, namesapce: str):
         from langchain_community.vectorstores.pinecone import Pinecone
 
-        if docs:
-            self.vectorstore = Pinecone.from_documents(
-                documents=docs,
-                embedding=self.embedding_model,
-                namesapce=namesapce,
-                index_name=self.index_name,
-            )
-        else:
-            self.vectorstore = Pinecone.from_existing_index(
-                index_name=self.index_name,
-                namespace=namesapce,
-                embedding=self.embedding_model,
-            )
+        self.vectorstore = Pinecone.from_existing_index(
+            index_name=self.index_name,
+            namespace=namesapce,
+            embedding=self.embedding_model,
+        )
         return self.vectorstore
 
     def delete(self, id: any, **kwargs):
@@ -97,7 +89,7 @@ class PineconeVs(VectoreStoreInf):
                     raise Exception("Timeout waiting for index to be ready")
 
 
-class FaissVs(VectoreStoreInf):
+class FaissVs(VectoreStoreMixin, VectoreStoreInf):
 
     def __init__(
         self, embedding_model: object, persist_dir: str, dim: int = 768
@@ -106,16 +98,25 @@ class FaissVs(VectoreStoreInf):
 
         self.embedding_model = embedding_model
         self.persist_dir = persist_dir
-        self.client = faiss.IndexFlatL2(embedding_word_demension=dim)
+        self.client = faiss.IndexFlatL2(dim)
 
-    def create(self, store: object = None):
+    def create(self, index_name: str, store: object = None):
 
-        self.vectorstore = FAISS(
-            embedding_function=self.embedding_model,
-            index=self.client,
-            docstore=store,
-            index_to_docstore_id={},
-        )
+        os.makedirs(self.persist_dir, exist_ok=True)
+
+        try:
+            self.vectorstore = FAISS.load_local(
+                index_name=index_name,
+                folder_path=self.persist_dir,
+                embeddings=self.embedding_model,
+            )
+        except Exception as e:
+            self.vectorstore = FAISS(
+                embedding_function=self.embedding_model,
+                index=self.client,
+                docstore=store,
+                index_to_docstore_id={},
+            )
         return self.vectorstore
 
     def search(self, query: str, **kwargs):
@@ -131,30 +132,25 @@ class FaissVs(VectoreStoreInf):
         persist_dir = Path(os.getcwd()) / "core" / "db" / db_name
         self.vectorstore.save_local(self, folder_path=persist_dir, index_name=namespace)
 
+    def exists(self, name: str) -> bool:
+        """테이블 혹은 컬렉션이 DB에 존재하는지 여부 반환"""
+        return self.vectorstore != None
 
-class ChromaVs(VectoreStoreInf):
+
+class ChromaVs(VectoreStoreMixin, VectoreStoreInf):
 
     def __init__(self, embedding_model: object, persist_dir: str) -> None:
-        import faiss
-
         self.embedding_model = embedding_model
         self.persist_dir = persist_dir
 
-    def create(self, collection_name: str, docs: List[any] = None):
+    def create(self, collection_name: str):
 
-        if docs:
-            self.vectorstore = Chroma.from_documents(
-                collection_name=collection_name,
-                documents=docs,
-                embedding=self.embedding_model,
-                persist_directory=self.persist_dir,
-            )
-        else:
-            self.vectorstore = Chroma(
-                collection_name=collection_name,
-                embedding_function=self.embedding_model,
-                persist_directory=self.persist_dir,
-            )
+        self.vectorstore = Chroma(
+            collection_name=collection_name,
+            embedding_function=self.embedding_model,
+            persist_directory=self.persist_dir,
+        )
+
         return self.vectorstore
 
     def search(self, query: str, **kwargs):
@@ -162,3 +158,17 @@ class ChromaVs(VectoreStoreInf):
 
     def delete(self, id: any, **kwargs):
         """"""
+
+    def exists(self, name: str) -> bool:
+        self.has_index = (
+            len(
+                list(
+                    filter(
+                        lambda x: x.name == name,
+                        self.vectorstore._client.list_collections(),
+                    )
+                )
+            )
+            > 0
+        )
+        return self.has_index

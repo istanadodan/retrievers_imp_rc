@@ -1,9 +1,7 @@
-from langchain.docstore.document import Document
-from typing import List
-from cmn.types.vectorstore import VectoreStoreInf
+from typing import List, Union
+from cmn.types.vectorstore import VectoreStoreInf, VectoreStoreMixin
 from core.llm import get_embeddings
 from langchain.docstore.in_memory import InMemoryDocstore
-from .vectorstore import PineconeVs, FaissVs, ChromaVs, select_vectorstore
 from pathlib import Path
 
 
@@ -13,26 +11,23 @@ from pathlib import Path
 
 def get_vectorstore_from_type(
     vd_name: str,
-    docs: List[Document] = None,
     store: object = InMemoryDocstore(),
     **kwargs,
-) -> VectoreStoreInf:
+) -> Union[VectoreStoreMixin, VectoreStoreInf]:
+    from .vectorstore import select_vectorstore
 
-    _vs_params = {
-        "namespace": kwargs.get("namespace", "default"),
-        "index_name": kwargs.get("index_name", "default"),
-        "persist_dir": str((Path.cwd() / "core" / "db" / vd_name).resolve()),
-    }
-    _vs_wapper = select_vectorstore(vd_name, get_embeddings(), **_vs_params)
+    index_name = kwargs.get("namespace")
+
+    _vs_wapper = select_vectorstore(vd_name, get_embeddings(), **kwargs)
 
     if vd_name == "faiss":
-        _vs_wapper.create(store=store, docs=docs)
+        _vs_wapper.create(index_name=index_name, store=store)
 
     elif vd_name == "chroma":
-        _vs_wapper.create(collection_name=_vs_params["namespace"], docs=docs)
+        _vs_wapper.create(collection_name=index_name)
 
     elif vd_name == "pinecone":
-        _vs_wapper.create(namesapce=_vs_params["namespace"], docs=docs)
+        _vs_wapper.create(namesapce=index_name)
 
     else:
         raise FileNotFoundError(f"bad vd_name: {vd_name}")

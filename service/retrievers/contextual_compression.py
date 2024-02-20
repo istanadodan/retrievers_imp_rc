@@ -4,6 +4,7 @@ from langchain.retrievers.document_compressors import (
     LLMChainExtractor,
 )
 import logging
+from core.db import get_vectorstore_from_type
 from core.llm import get_llm, get_embeddings
 from core.query import get_retriever
 import re
@@ -27,10 +28,14 @@ def compression_retriever(doc_path: str, k: int = 1, thre: float = 0.6):
     from service.utils.retrieve_params import get_default_vsparams
 
     kwargs = get_default_vsparams(doc_path=doc_path)
-    _retriever = get_retriever(search_type="mmr", k=k, **kwargs)
-    if not _retriever:
-        return
+    vsclient = get_vectorstore_from_type(**kwargs)
 
+    _retriever = vsclient.get().as_retriever(
+        search_type="mmr",
+        search_kwargs={"k": k},
+    )
+
+    # 압축기 정의. 필터1, 필터2, 관련여부체크LLM 순서로 실행된다.
     _rdun_compressor = EmbeddingsRedundantFilter(embeddings=get_embeddings())
 
     _ebd_compressor = EmbeddingsFilter(

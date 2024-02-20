@@ -14,14 +14,20 @@ def attach_sidebar(st: streamlit):
             upload_file = st.file_uploader(
                 "Upload a document", type=["pdf"], accept_multiple_files=False
             )
-            if upload_file:
-                from service import persist_vectorstore
+            columns = st.columns([5.5, 4.5], gap="large")
+            with columns[0]:
+                is_pd_retriever = st.checkbox("PD탐색기")
 
-                persist_path = fileUtils.save_buffer(
-                    save_filename=upload_file.name, buffer=upload_file.getbuffer()
-                )
-                # vectorstore에 저장한다.
-                persist_vectorstore(persist_path)
+            with columns[1]:
+                if st.button("올리기") and upload_file:
+                    from service import persist_to_vectorstore
+
+                    persist_path = fileUtils.save_buffer(
+                        save_filename=upload_file.name,
+                        buffer=upload_file.getbuffer(),
+                    )
+                    # vectorstore에 저장한다.
+                    persist_to_vectorstore(persist_path, is_pd_retriever)
 
         # with st.expander("데이터 업로드"):
         # data_df = pd.DataFrame({'index':['a','b'], 'data':[True, False]})
