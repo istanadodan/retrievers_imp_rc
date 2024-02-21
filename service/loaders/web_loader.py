@@ -10,15 +10,6 @@ def get_loader(files: Union[List[str], str]):
 
 
 class WebLoader(LoaderType):
-    docs: List[Document] = []
-
-    def __init__(self, urls: Union[List[str], str]):
-        self.urls = [urls] if isinstance(urls, str) else urls
-
-    @property
-    def documents(self) -> List[Document]:
-        return self.docs
-
     @override
     def get_documents(self) -> List[Document]:
         def filter_func(doc: Document):
@@ -33,7 +24,7 @@ class WebLoader(LoaderType):
 
         for url in self.urls:
             loader = WebBaseLoader(url)
-            docs = loader.load_and_split(text_splitter=get_splitter(chunk_size=200))
+            docs = loader.load_and_split(text_splitter=self.splitter)
             self.docs.extend(list(filter(filter_func, map(map_func, docs))))
             pass
 

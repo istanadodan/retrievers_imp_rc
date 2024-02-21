@@ -21,6 +21,7 @@ from service.retrievers import (
     contextual_compression,
     multi_query,
     ensembles,
+    multi_vector,
 )
 from langchain.memory import ConversationBufferWindowMemory
 from cmn.types.vectorstore import VectoreStoreInf
@@ -40,6 +41,7 @@ query_type_map = {
     QueryType.Contextual_Compression: contextual_compression.compression_retriever,
     QueryType.Parent_Document: parent_document.pdoc_retriever,
     QueryType.Ensembles: ensembles.ensembles_retriever,
+    QueryType.Multi_Vector: multi_vector.multivector_retriever3,
 }
 
 
@@ -61,11 +63,13 @@ def simple_query(query: str):
 
 def webpage_summary(url: str, keyword: str, engine: QueryType, top_k: int):
     from service.loaders import get_documents_from_urls
-
+    from service.utils.text_split import get_splitter
     import re
     import datetime
 
-    docs: List = get_documents_from_urls(urls=[url])
+    docs: List = get_documents_from_urls(
+        urls=[url], splitter=get_splitter(chunk_size=300)
+    )
     save_path = Path(
         f"./public/url_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
     )
@@ -185,7 +189,7 @@ def query(query: str, path: str, query_type: QueryType, k: int = 2):
         [
             (
                 "system",
-                """Answer the question based only on the following contexts and additional_info only if it is usefull:
+                """Answer the question based only on the following contexts or additional_info:
 {context}
 Additional_Info: {addtional_info}
 Write an answer in Korean.
@@ -254,21 +258,21 @@ Answer:
     # )
     # answer = r_qa.invoke({"question": query})
     # return {x: answer[x] for x in iter(answer) if x in ["result", "source_documents"]}
-    return (query, answer["result"])
+    return (query, answer["result"], answer["source_documents"])
 
 
 def persist_to_vectorstore(
     path: str, is_pd_retriever: bool, vector_name: str = "chroma"
 ):
     from service.utils.text_split import split_documents
-    from service.loaders import get_documents
+    from service.loaders import get_documents_from_file
     from langchain.retrievers import ParentDocumentRetriever
     from core.db import get_vectorstore_from_type
     from service.utils.text_split import get_splitter
     import os
 
     # 문서 load
-    docs = get_documents(path)
+    docs = get_documents_from_file(path)
     # docs생성
     split_docs = split_documents(docs, chunk_size=300, chunk_overlap=0)
 

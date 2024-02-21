@@ -7,3 +7,4 @@ class QueryType(Enum):
     Parent_Document = auto()
     Simple_Query = auto()
     Ensembles = auto()
+    Multi_Vector = auto()

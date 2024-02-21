@@ -6,7 +6,7 @@ from core.llm import get_llm, get_embeddings
 from core.query import get_retriever
 import re
 
-from service.loaders import get_documents
+from service.loaders import get_documents_from_file
 from service.utils.text_split import split_documents
 
 
@@ -21,7 +21,7 @@ def query(query: str, doc_path: str, k: int = 1):
 def ensembles_retriever(doc_path: str, k: int, dense_rate: float = 0.0):
     from service.utils.retrieve_params import get_default_vsparams
 
-    docs = split_documents(get_documents(files=doc_path), chunk_size=200)
+    docs = split_documents(get_documents_from_file(files=doc_path), chunk_size=200)
     _sparse_retriever = BM25Retriever.from_documents(docs, k=k)
     # _sparse_retriever.k = k
 

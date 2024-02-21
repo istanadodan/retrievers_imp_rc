@@ -1,9 +1,8 @@
 import streamlit as st
 from dotenv import load_dotenv
 from template.side_bar import attach_sidebar
-from template.body import write_answer
+from template.body import write_answer, setup, logging
 from utils import return_inactive
-import logging
 
 load_dotenv()
 
@@ -53,7 +52,7 @@ def main():
                         user_question,
                         # file_path,
                         # query_type=QueryType.Multi_Query,
-                        # k=top_k,
+                        k=top_k,
                     )
 
             with tabs[1]:
@@ -69,23 +68,10 @@ def main():
                 st.session_state.conversation.append(
                     dict(user=query_res[0], ai=query_res[1])
                 )
-                write_answer(st, cb=cb)
+                write_answer(cb=cb)
 
     except Exception as e:
         logging.error(f"err: {e}")
-
-
-def setup():
-    st.set_page_config(page_icon="🙌", page_title="LLM Query", layout="wide")
-    st.header("LLM 질의하기")
-
-    logging.basicConfig(level=logging.INFO)
-
-    if "top_k" not in st.session_state:
-        st.session_state.top_k = 1
-
-    if "conversation" not in st.session_state:
-        st.session_state.conversation = []
 
 
 if __name__ == "__main__":

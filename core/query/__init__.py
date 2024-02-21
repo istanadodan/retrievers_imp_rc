@@ -2,8 +2,7 @@ import pathlib
 from typing import List, Union
 from langchain_core.vectorstores import VectorStoreRetriever
 from cmn.types.vectorstore import VectoreStoreInf
-from core.db import get_vectorstore_from_type
-from service.loaders import get_documents
+from service.loaders import get_documents_from_file
 from service.utils.text_split import split_documents
 from pathlib import Path
 from langchain_community.vectorstores import pinecone, chroma
@@ -33,7 +32,7 @@ def get_retriever(
 
 def get_docs_from_persist(path: Path, **kwargs):
     return split_documents(
-        get_documents(str(path.resolve())),
+        get_documents_from_file(str(path.resolve())),
         chunk_size=kwargs.get("chunk_size", 300),
         chunk_overlap=kwargs.get("chunk_overlap", 0),
     )

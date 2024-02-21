@@ -1,9 +1,8 @@
 import streamlit as st
 from dotenv import load_dotenv
 from template.side_bar import attach_sidebar
-from template.body import write_answer
+from template.body import write_answer, setup, logging
 from utils import return_inactive
-import logging
 
 load_dotenv()
 
@@ -26,13 +25,14 @@ def main():
             top_k = st.session_state.top_k if st.session_state.top_k else 2
 
             # 탭이 1개인 경우, with문 실행 오류
-            tab1, tab2, tab3, tab4, tab5 = st.tabs(
+            tabs = st.tabs(
                 [
                     "multi-query",
                     "parent-node",
                     "context-comprs",
                     "simple queury",
                     "ensembles",
+                    "multi-vector",
                 ]
             )
 
@@ -41,7 +41,7 @@ def main():
             )
             # 결과값 초기화
             query_res = (None, None)
-            with tab1:
+            with tabs[0]:
                 user_question = st.text_input(
                     "파일내용에 대해 질의해 주세요.",
                     on_change=return_inactive,
@@ -56,7 +56,7 @@ def main():
                         k=top_k,
                     )
 
-            with tab2:
+            with tabs[1]:
                 """
                 출처가 추출되지 않기도 함
                 * ___마이데이터 문서에서는 출처가 나오지 않았고, 자바스크립트에서는 나옴.(건수 문제?)___
@@ -75,7 +75,7 @@ def main():
                             k=top_k,
                         )
 
-            with tab3:
+            with tabs[2]:
                 """
                 조회결과를 LLM으로 압축하거나 조회결과의 필터링을 한다.
                 """
@@ -93,7 +93,7 @@ def main():
                             k=top_k,
                         )
 
-            with tab4:
+            with tabs[3]:
                 """
                 단순 조회
                 """
@@ -108,7 +108,7 @@ def main():
                             user_question,
                         )
 
-            with tab5:
+            with tabs[4]:
                 """
                 하이브리드 검색
                 """
@@ -126,30 +126,35 @@ def main():
                             k=top_k,
                         )
 
+            with tabs[5]:
+                """
+                멀티벡터 검색 - 검색대상은 자식문서이며, 결과는 그 부모문서로 한다.
+                """
+                user_question = st.text_input(
+                    "파일내용에 대해 질의해 주세요.",
+                    on_change=return_inactive,
+                    key="q6",
+                )
+                if st.button("실행", key="b6") and user_question:
+                    with st.spinner():
+                        query_res = query(
+                            user_question,
+                            file_path,
+                            query_type=QueryType.Multi_Vector,
+                            k=top_k,
+                        )
+
             if user_question and not file_path:
                 write_warning("파일이 선택되지 않았습니다.")
 
             elif query_res[1]:
                 st.session_state.conversation.append(
-                    dict(user=query_res[0], ai=query_res[1])
+                    dict(user=query_res[0], ai=query_res[1], source=query_res[2])
                 )
-                write_answer(st, cb=cb)
+                write_answer(cb=cb)
 
     except Exception as e:
         logging.error(f"err: {e}")
-
-
-def setup():
-    st.set_page_config(page_icon="🙌", page_title="LLM Query", layout="wide")
-    st.header("LLM 질의하기")
-
-    logging.basicConfig(level=logging.INFO)
-
-    if "top_k" not in st.session_state:
-        st.session_state.top_k = 1
-
-    if "conversation" not in st.session_state:
-        st.session_state.conversation = []
 
 
 if __name__ == "__main__":

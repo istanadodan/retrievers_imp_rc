@@ -15,7 +15,7 @@ def get_default_vsparams(doc_path: str, **kwargs) -> Dict[str, object]:
     params = {
         "vd_name": _vd_name,
         "index_name": kwargs.get("index_name", "manuals"),
-        "namespace": kwargs["namespace"] or _path.name,
+        "namespace": kwargs.get("namespace") or _path.name,
         "doc_path": _path,
         "chunk_size": kwargs.get("chunk_size", 300),
         "chunk_overlap": kwargs.get("chunk_overlap", 0),
