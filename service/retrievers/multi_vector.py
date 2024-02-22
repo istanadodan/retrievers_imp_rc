@@ -128,6 +128,10 @@ def multivector_retriever2(doc_path: str, k: int = 3):
 
 # Hypothetical Queries
 # 각 문서에 대해 질의가능한 내용으로 질의문을 작성해서 질의대상으로 한다.
+def hypothetical_questions(arr: List[str]) -> str:
+    return "\n\n".join(arr)
+
+
 def multivector_retriever3(doc_path: str, k: int = 3):
     from service.utils.retrieve_params import get_default_vsparams
     import uuid
@@ -135,11 +139,16 @@ def multivector_retriever3(doc_path: str, k: int = 3):
     from service.utils.text_split import get_splitter
     from langchain.prompts import ChatPromptTemplate
     from core.llm import get_llm
-    from langchain_core.output_parsers import JsonOutputParser
+    from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
     from langchain.output_parsers.openai_functions import JsonKeyOutputFunctionsParser
     from langchain.docstore.document import Document
 
     docs = get_documents_from_file(doc_path, get_splitter(chunk_size=300))
+    """
+    funtion_call 함수의 schema를 설정한다.
+     question은 LLM의 출력이면서 function_call 함수의 인자로 전달된다. 
+     intermediate_step에서 이 인자를 인식하기 위한 이름이 "question"인 것이다.
+    """
     functions = [
         {
             "name": "hypothetical_questions",
@@ -155,6 +164,7 @@ def multivector_retriever3(doc_path: str, k: int = 3):
     ]
     from langchain_core.runnables import RunnableLambda
 
+    # function_call함수를 구현하여 사용한다.
     hy_questions_chain = (
         {"doc": lambda x: x.page_content}
         | ChatPromptTemplate.from_template(
@@ -163,16 +173,30 @@ def multivector_retriever3(doc_path: str, k: int = 3):
         | get_llm().bind(
             functions=functions, function_call={"name": "hypothetical_questions"}
         )
-        | JsonKeyOutputFunctionsParser(key_name="questions")
-        | RunnableLambda(lambda x: "\n\n".join(x))
+        | {
+            "result": JsonKeyOutputFunctionsParser(key_name="questions"),
+            "function_name": lambda x: x.additional_kwargs["function_call"]["name"],
+        }
+        | RunnableLambda(lambda x: eval(x["function_name"])(x["result"]))
+        # |JsonKeyOutputFunctionsParser(key_name="questions")
+        # | RunnableLambda(lambda x: "\n\n".join(x))
     )
+    # function_call 함수없이 구현
+    # hy_questions_chain = (
+    #     {"doc": lambda x: x.page_content}
+    #     | ChatPromptTemplate.from_template(
+    #         "Generate a list of exactly 3 hypothetical questions that the below document could be used to answer:\n\n{doc}"
+    #     )
+    #     | get_llm()
+    #     | StrOutputParser()
+    # )
 
     """
     ["What was the author's first experience with programming like?",
     'Why did the author switch their focus from AI to Lisp during their graduate studies?',
     'What led the author to contemplate a career in art instead of computer science?']"""
 
-    question_list = hy_questions_chain.batch(docs, {"max_concurrency": 5})
+    question_list = hy_questions_chain.batch(docs[:2], {"max_concurrency": 5})
     id_key = "p_id"
 
     doc_ids = [str(uuid.uuid4()) for _ in question_list]
