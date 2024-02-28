@@ -1,10 +1,6 @@
-import streamlit as st
-from dotenv import load_dotenv
-from template.side_bar import attach_sidebar
-from template.body import write_answer, setup, logging
-from utils import return_inactive
-
-load_dotenv()
+from cmn.config import setup, logging, st
+from ui.menu import attach_sidebar
+from cmn.tasks import write_answer, return_inactive
 
 
 def write_warning(message: str):

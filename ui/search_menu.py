@@ -1,6 +1,5 @@
 import streamlit as st
-from utils import return_inactive
-import logging
+from cmn.tasks import return_inactive
 
 # 탭이 1개인 경우, with문 실행 오류
 tab1, tab2, tab3, tab4, tab5 = st.tabs(

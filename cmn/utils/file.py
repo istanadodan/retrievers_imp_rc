@@ -2,7 +2,7 @@ import pathlib as lib
 import logging
 from typing import List
 
-PUBLIC_DIR = "./public"
+PUBLIC_DIR = "./assets/download_docs"
 
 
 # 스트림을 저장하고 저장위치를 반환한다.

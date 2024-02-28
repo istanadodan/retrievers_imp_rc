@@ -44,6 +44,8 @@ query_type_map = {
     QueryType.Multi_Vector: multi_vector.multivector_retriever3,
 }
 
+PUBLIC_PATH = "./assets/download_docs"
+
 
 def simple_query(query: str):
     from langchain.chains.llm import LLMChain
@@ -71,7 +73,7 @@ def webpage_summary(url: str, keyword: str, engine: QueryType, top_k: int):
         urls=[url], splitter=get_splitter(chunk_size=300)
     )
     save_path = Path(
-        f"./public/url_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+        f"{PUBLIC_PATH}/url_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
     )
     with open(save_path, encoding="utf-8", mode="w") as file:
         for doc in docs:

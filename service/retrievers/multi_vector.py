@@ -7,7 +7,6 @@
 from typing import List
 from langchain.retrievers import MultiVectorRetriever
 from core.db import get_vectorstore_from_type
-from service.utils.text_split import get_splitter
 from langchain.storage import InMemoryStore
 import logging
 

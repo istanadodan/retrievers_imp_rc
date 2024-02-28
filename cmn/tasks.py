@@ -1,6 +1,5 @@
 import streamlit as st
-from template.htmlTemplates import css, bot_template, user_template
-import logging
+from ui.dialog_template import css, bot_template, user_template
 
 
 def write_answer(cb: object):
@@ -73,18 +72,5 @@ def insert_line_feed(txt: str, match: str = "다\.", rep: str = "\n"):
     return re.sub(f"({match})", rf"\1{rep}", txt)
 
 
-def setup():
-
-    st.set_page_config(page_icon="🙌", page_title="LLM Query", layout="wide")
-    st.header("LLM 질의하기")
-
-    logging.basicConfig(level=logging.INFO)
-
-    if "top_k" not in st.session_state:
-        st.session_state.top_k = 1
-
-    if "conversation" not in st.session_state:
-        st.session_state.conversation = []
-
-    if "token_usage" not in st.session_state:
-        st.session_state.token_usage = {}
+def return_inactive(*args, **kwargs):
+    return
