@@ -1,7 +1,24 @@
+from enum import Enum
 from typing import List
 from langchain.docstore.document import Document
 from langchain.vectorstores import VectorStore
 from abc import ABC, abstractmethod
+
+
+class VectoreStoreType(Enum):
+    FAISS = "faiss"
+    CHROMA = "chroma"
+    PINECONE = "pinecone"
+
+    @classmethod
+    def values(cls):
+        output = []
+        for _, member in cls.__members__.items():
+            output.append(member.value)
+        return output
+
+    def __eq__(self, other):
+        return self.value == other or self == other
 
 
 class VectoreStoreMixin:
@@ -32,12 +49,17 @@ class VectoreStoreInf(ABC):
     def exists(self, name: str) -> bool:
         """테이블 혹은 컬렉션이 DB에 존재하는지 여부 반환"""
 
-    @abstractmethod
-    def search(self, query: str, **kwargs):
-        """"""
+    def search(self, query: str, **kwargs: any) -> List[Document]:
+        """질의와 질의방식을 입력받아 검색한다."""
+        search_type = kwargs.get("search_type")
+        if not search_type:
+            search_type = "similarity"
+        else:
+            kwargs.pop("search_type")
+        return self.get().search(query, search_type, **kwargs)
 
     @abstractmethod
-    def delete(self, id: any, **kwargs):
+    def delete(self, **kwargs: any):
         """"""
 
     def save(self, docs: List[Document], **kwargs):

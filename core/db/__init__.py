@@ -11,26 +11,16 @@ from pathlib import Path
 
 def get_vectorstore_from_type(
     vd_name: str,
-    store: object = InMemoryDocstore(),
     **kwargs,
 ) -> Union[VectoreStoreMixin, VectoreStoreInf]:
-    from .vectorstore import select_vectorstore
+    from .vectorstore import select_vectorstore, get_available_vectorstores
 
-    index_name = kwargs.get("namespace")
-
+    if vd_name not in get_available_vectorstores():
+        raise ValueError(
+            "vectorstores are not installed. Please install them with `pip install vectorstores`"
+        )
     _vs_wapper = select_vectorstore(vd_name, get_embeddings(), **kwargs)
-
-    if vd_name == "faiss":
-        _vs_wapper.create(index_name=index_name, store=store)
-
-    elif vd_name == "chroma":
-        _vs_wapper.create(collection_name=index_name)
-
-    elif vd_name == "pinecone":
-        _vs_wapper.create(namesapce=index_name)
-
-    else:
-        raise FileNotFoundError(f"bad vd_name: {vd_name}")
+    _vs_wapper.create()
 
     return _vs_wapper
 

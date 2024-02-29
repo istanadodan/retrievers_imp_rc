@@ -4,7 +4,14 @@ from langchain.docstore.document import Document
 from typing import List
 from cmn.types.vectorstore import VectoreStoreInf, VectoreStoreMixin
 from pathlib import Path
+from cmn.types.vectorstore import VectoreStoreType
 import os
+
+
+def get_available_vectorstores() -> list[str]:
+    """사용 가능한 vectorstore 목록을 반환한다."""
+
+    return VectoreStoreType.values()
 
 
 def select_vectorstore(
@@ -14,23 +21,33 @@ def select_vectorstore(
 ) -> VectoreStoreInf:
     """타입을 입력받아, vectorstore wrapper를 생성하여 반환한다."""
 
-    if vectorstore_type == "faiss":
-        return FaissVs(
-            embedding_model=embedding_model,
-            persist_dir=kwargs.get("persist_dir"),
-            dim=768,
-        )
+    if vectorstore_type == VectoreStoreType.FAISS:
+        kwargs = {
+            "embedding_model": embedding_model,
+            "persist_dir": kwargs.get("persist_dir"),
+            "index_name": kwargs.get("namespace"),  # 문서
+            "dim": 769,
+        }
+        return FaissVs(**kwargs)
 
-    elif vectorstore_type == "chroma":
-        return ChromaVs(
-            embedding_model=embedding_model, persist_dir=kwargs.get("persist_dir")
-        )
+    elif vectorstore_type == VectoreStoreType.CHROMA:
+        kwargs = {
+            "embedding_model": embedding_model,
+            "persist_dir": kwargs.get("persist_dir"),
+            "collection_name": kwargs.get("namespace"),  # 문서
+        }
 
-    elif vectorstore_type == "pinecone":
-        index_name = kwargs.get("index_name")
-        if not index_name:
+        return ChromaVs(**kwargs)
+
+    elif vectorstore_type == VectoreStoreType.PINECONE:
+        kwargs = {
+            "embedding_model": embedding_model,
+            "index_name": kwargs.get("index_name"),  # 문서그룹
+            "namespace": kwargs.get("namespace"),  # 문서
+        }
+        if not kwargs["index_name"]:
             raise ValueError("index_name is required")
-        return PineconeVs(index_name=index_name, embedding_model=embedding_model)
+        return PineconeVs(**kwargs)
 
     else:
         raise ValueError(f"vectorstore_type: {vectorstore_type} is not supported")
@@ -59,15 +76,8 @@ class PineconeVs(VectoreStoreMixin, VectoreStoreInf):
         )
         return self.vectorstore
 
-    def delete(self, id: any, **kwargs):
+    def delete(self, id: any):
         return self.vectorstore.delete(namespace=id, delete_all=True)
-
-    def search(self, query: str, **kwargs):
-        """"""
-
-    def delete(self, id: any, **kwargs):
-        """"""
-        return super().delete(id, **kwargs)
 
     def _check_and_create_index(self):
         """인덱스명은 db명"""
@@ -92,38 +102,47 @@ class PineconeVs(VectoreStoreMixin, VectoreStoreInf):
 class FaissVs(VectoreStoreMixin, VectoreStoreInf):
 
     def __init__(
-        self, embedding_model: object, persist_dir: str, dim: int = 768
+        self,
+        embedding_model: object,
+        index_name: str,
+        persist_dir: str,
+        dim: int = 768,
     ) -> None:
         import faiss
 
         self.embedding_model = embedding_model
         self.persist_dir = persist_dir
         self.client = faiss.IndexFlatL2(dim)
+        self.index_name = index_name
 
-    def create(self, index_name: str, store: object = None):
+    def create(self):
 
         os.makedirs(self.persist_dir, exist_ok=True)
 
         try:
             self.vectorstore = FAISS.load_local(
-                index_name=index_name,
+                index_name=self.index_name,
                 folder_path=self.persist_dir,
                 embeddings=self.embedding_model,
             )
         except Exception as e:
+            if not self.store:
+                raise Exception("store가 None입니다.")
+
             self.vectorstore = FAISS(
                 embedding_function=self.embedding_model,
                 index=self.client,
-                docstore=store,
+                docstore=self.store,
                 index_to_docstore_id={},
             )
         return self.vectorstore
 
-    def search(self, query: str, **kwargs):
-        """"""
-
-    def delete(self, id: any, **kwargs):
-        """"""
+    def delete(self):
+        """인덱스파일을 삭제한다."""
+        try:
+            os.remove(self.persist_dir)
+        except Exception as e:
+            """"""
 
     def add(self, docs, **kwargs):
         super().add(docs)
@@ -139,25 +158,25 @@ class FaissVs(VectoreStoreMixin, VectoreStoreInf):
 
 class ChromaVs(VectoreStoreMixin, VectoreStoreInf):
 
-    def __init__(self, embedding_model: object, persist_dir: str) -> None:
+    def __init__(
+        self, embedding_model: object, collection_name: str, persist_dir: str
+    ) -> None:
         self.embedding_model = embedding_model
         self.persist_dir = persist_dir
+        self.collection_name = collection_name
 
-    def create(self, collection_name: str):
-
+    def create(self):
         self.vectorstore = Chroma(
-            collection_name=collection_name,
+            collection_name=self.collection_name,
             embedding_function=self.embedding_model,
             persist_directory=self.persist_dir,
         )
 
         return self.vectorstore
 
-    def search(self, query: str, **kwargs):
-        """"""
-
-    def delete(self, id: any, **kwargs):
-        """"""
+    def delete(self):
+        """현재 collection을 삭제한다."""
+        self.get().delete_collection()
 
     def exists(self, name: str) -> bool:
         self.has_index = (
