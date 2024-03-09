@@ -1,64 +1,50 @@
-import streamlit
-from cmn.tasks import return_inactive
-import pandas as pd
+from streamlit_option_menu import option_menu
 
 
-def attach_sidebar(st: streamlit):
-    import cmn.utils.file as fileUtils
+class MenuUI:
+    def __init__(self, title: str = "Main"):
+        self.apps = []
+        self.current_app = None
+        self.main_menu = title
 
-    _filelist = fileUtils.filelist()
+    def add_app(self, title, module):
+        self.apps.append({"title": title, "module": module})
 
-    with st.sidebar:
-        with st.expander("파일 업로드"):
-            upload_file = st.file_uploader(
-                "Upload a document", type=["pdf", "txt"], accept_multiple_files=False
-            )
-            columns = st.columns([5.5, 4.5], gap="large")
-            with columns[0]:
-                is_pd_retriever = st.checkbox("PD탐색기")
+    def create(self, default_index: int = 0):
+        self.current_app = option_menu(
+            menu_title=self.main_menu,
+            options=list(map(lambda x: x["title"], self.apps)),
+            icons=["house", "gear"],  # person-circle, trophy-fill, chat-fill
+            menu_icon="chat-text-fill",
+            default_index=default_index,
+            styles={
+                "container": {"padding": "5!important", "background-color": "grey"},
+                "icon": {"color": "white", "font-size": "15px"},
+                "nav-link": {
+                    "font-size": "15px",
+                    "color": "blue",
+                    "text-align": "left",
+                    "margin": "1px",
+                    "--hover-color": "#eee",
+                },
+                "nav-link-selected": {"background-color": "#02ab21"},
+            },
+        )
 
-            with columns[1]:
-                if st.button("올리기") and upload_file:
-                    from service import persist_to_vectorstore
+    def run(self):
+        import logging
+        from cmn.tasks import write_answer
 
-                    with st.spinner():
-                        persist_path = fileUtils.save_buffer(
-                            save_filename=upload_file.name,
-                            buffer=upload_file.getbuffer(),
-                        )
-                        # vectorstore에 저장한다.
-                        persist_to_vectorstore(persist_path, is_pd_retriever)
-                        # 재시동 - 파일명 출력
-                        st.rerun()
+        if not self.current_app:
+            return
+        app = list(filter(lambda x: x["title"] == self.current_app, self.apps))[0]
 
-        # with st.expander("데이터 업로드"):
-        # data_df = pd.DataFrame({'index':['a','b'], 'data':[True, False]})
-        #     st.data_editor(
-        #         data_df,
-        #         column_config={
-        #             "index": st.column_config.TextColumn("라벨"),
-        #             "data": st.column_config.CheckboxColumn(
-        #                 "선택", width="medium", default=False
-        #             ),
-        #         },
-        #         disabled=["index"],
-        #         hide_index=True,
-        #     )
+        try:
+            app["module"].run()
 
-        with st.expander("파일목록", expanded=len(_filelist) > 0):
-            selected_file = st.radio(
-                "FILE",
-                options=map(lambda x: x[0], _filelist),
-                index=None,
-                on_change=return_inactive,
-            )
+            write_answer()
 
-            if selected_file:
-                st.session_state.file_path = list(
-                    filter(lambda x: x[0] == selected_file, _filelist)
-                )[0][1]
+        except Exception as e:
+            logging.error(f"err: {e}")
 
-        with st.expander("옵션", expanded=False):
-            st.session_state.top_k = st.slider(
-                "top-k", 1, 10, on_change=return_inactive
-            )
+        return app["title"]

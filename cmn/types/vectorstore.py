@@ -18,7 +18,9 @@ class VectoreStoreType(Enum):
         return output
 
     def __eq__(self, other):
-        return self.value == other or self == other
+        if isinstance(other, VectoreStoreType):
+            return self.value == other
+        return self.value == other
 
 
 class VectoreStoreMixin:

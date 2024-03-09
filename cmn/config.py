@@ -6,13 +6,13 @@ load_dotenv()
 
 
 def setup():
-
     st.set_page_config(
         page_icon="🙌",
         page_title="LLM Query",
         layout="wide",
         initial_sidebar_state="expanded",
     )
+
     st.header("LLM 질의하기")
 
     logging.basicConfig(level=logging.INFO)

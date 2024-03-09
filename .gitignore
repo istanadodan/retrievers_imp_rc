@@ -1,0 +1,6 @@
+__pycache__
+.venv
+.vscode
+core/db/chroma
+models
+assets/download_docs

@@ -1,0 +1,22 @@
+# 기본적은 Compose파일을 작성할 것.
+version: '3.7'
+
+services:
+  ros2:
+    image: unity_humble:1.0
+    ports: [10000:10000,5000:5000]
+    container_name: unity_connect
+    tty: true
+    environment:
+      - DISPLAY=host.docker.internal:0.0
+      - QT_X11_NO_MITSHM=1
+      - DEBIAN_FRONTEND=noninteractive
+    volumes:
+      - D:\\Projects_robot\\with-robot-2024-1st:/root/workspace/:rw
+    
+    command: >
+      /bin/bash -c "
+      echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc &&
+      cd ~/workspace &&
+      bash"
+      

@@ -1,0 +1,47 @@
+# 이 Compose 파일은 Ubuntu 22.04 이미지를 기반으로 ROS2 Humble과 필요한 패키지를 설치하고, 
+# with-robot-2024-1st 저장소를 클론하고 필요한 디렉토리를 생성합니다. 
+# 또한 Docker 컨테이너에서 X11 디스플레이를 사용할 수 있도록 설정되어 있습니다.
+version: '3.7'
+
+services:
+  ros2:
+    image: ubuntu:22.04
+    ports: [10000:10000]
+    container_name: robot_unity
+    tty: true
+    environment:
+      - UBUNTU_CODENAME=jammy
+      - DISPLAY=0
+      - QT_X11_NO_MITSHM=1
+      - DEBIAN_FRONTEND=noninteractive
+      # - XAUTHORITY=/tmp/.docker.xauth
+    volumes:
+      - D:\\Projects_robot\\with-robot-2024-1st:/root/workspace/with-robot-2024-1st:rw
+      # - $XAUTH:/tmp/.docker.xauth
+    command: >
+      /bin/bash -c "
+        sudo apt update -y &&
+        sudo apt install software-properties-common -y &&
+        add-apt-repository universe &&
+        sudo apt update -y &&
+        sudo apt install curl -y &&
+        curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg &&
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(source /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null &&
+        sudo apt update -y &&
+        sudo apt upgrade -y &&
+        sudo apt install ros-humble-desktop -y &&
+        sudo apt install ros-dev-tools -y &&
+        echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc &&
+        sudo apt update -y &&
+        sudo apt upgrade -y &&
+        sudo apt install -y git &&
+        sudo apt install -y python3-pip &&
+        sudo apt install -y ros-humble-xacro &&
+        sudo apt install -y ros-humble-joint-state-publisher ros-humble-joint-state-publisher-gui &&
+        sudo apt install -y vim &&
+        mkdir -p ~/workspace &&
+        cd ~/workspace &&
+        mkdir -p ~/with-robot-2024-1st &&
+        # git clone https://github.com/with-robot/with-robot-2024-1st.git &&
+        # mkdir -p ~/workspace/with-robot-2024-1st/ros_ws/src/jetauto_description/src &&
+        bash"

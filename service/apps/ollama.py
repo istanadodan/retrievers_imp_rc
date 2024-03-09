@@ -4,13 +4,15 @@ tcp        0      0 localhost:39156         localhost:11434         ESTABLISHED
 """
 
 MODEL = "llama2:7b-chat"
+# MODEL = "llama2:7b"
 
 
 def chat1(query: str):
     from langchain_community.llms.ollama import Ollama
 
     try:
-        llm = Ollama(base_url="http://localhost:11434", model=MODEL, verbose=True)
+        # default base_url is "http://localhost:11434"
+        llm = Ollama(model=MODEL, verbose=True)
         # answer = llm.invoke("Why is the sky blue?")
         while True:
             query = input("query: ")
@@ -45,4 +47,4 @@ def chat2(query):
 
 
 if __name__ == "__main__":
-    chat2("Why is the sky blue?")
+    chat1("Why is the sky blue?")
