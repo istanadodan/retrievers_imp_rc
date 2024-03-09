@@ -1,24 +1,32 @@
-from cmn.config import setup, logging, st
-from ui.menu import MenuUI
+import streamlit as st
 
 
 def main():
     from ui.sidebar import show_menubar
-    from sub_pages import doc_search, function_call, summary
+    from cmn.config import setup
 
-    app = MenuUI()
-    app.add_app("문서조회", doc_search)
-    app.add_app("Function-call", function_call)
-    app.add_app("Summary", summary)
+    # 앱 설정
+    setup(st)
+    # 메뉴 생성
+    app = _create_menu()
 
-    # 앱설정
-    setup()
     # 사이드바 작성
     with st.sidebar:
         show_menubar(st, app)
 
     with st.container(border=True):
         app.run()
+
+
+def _create_menu():
+    from sub_pages import doc_search, function_call, summary
+    from ui.menu import MenuUI
+
+    app = MenuUI()
+    app.add_app("문서조회", doc_search)
+    app.add_app("Function-call", function_call)
+    app.add_app("Summary", summary)
+    return app
 
 
 if __name__ == "__main__":

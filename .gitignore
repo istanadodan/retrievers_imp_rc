@@ -4,3 +4,4 @@ __pycache__
 core/db/chroma
 models
 assets/download_docs
+.env

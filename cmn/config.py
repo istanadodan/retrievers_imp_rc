@@ -1,11 +1,10 @@
-import streamlit as st
 import logging
 from dotenv import load_dotenv
 
 load_dotenv()
 
 
-def setup():
+def setup(st: any):
     st.set_page_config(
         page_icon="🙌",
         page_title="LLM Query",
