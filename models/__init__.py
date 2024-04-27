@@ -1,16 +1,13 @@
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_community.llms.huggingface_hub import HuggingFaceHub
-from langchain_community.chat_models.huggingface import ChatHuggingFace
-from langchain_openai import ChatOpenAI, OpenAI
 import os
 import pathlib
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 embeddings_model_name = os.getenv("embeddings_model_name")
 chat_model_name = os.getenv("chat_model_name")
 
 
-def get_embeddings(model_name: str = "jhgan/ko-sbert-nli") -> HuggingFaceEmbeddings:
+def get_embeddings(model_name: str = "jhgan/ko-sbert-nli") -> "HuggingFaceEmbeddings":
     import torch
 
     model_name = model_name or embeddings_model_name
@@ -18,7 +15,7 @@ def get_embeddings(model_name: str = "jhgan/ko-sbert-nli") -> HuggingFaceEmbeddi
     encode_kwargs = {
         "normalize_embeddings": True,
         "device": device,
-        "show_progress_bar": True,
+        # "show_progress_bar": True,
     }
 
     if model_name.lower().find("all-MiniLM") >= 0:
@@ -41,7 +38,12 @@ def get_embeddings(model_name: str = "jhgan/ko-sbert-nli") -> HuggingFaceEmbeddi
         )
 
 
-def get_llm(model_name: str = None) -> BaseChatModel:
+def get_llm(model_name: str = None) -> "BaseChatModel":
+    from langchain_community.llms.huggingface_hub import HuggingFaceHub
+    from langchain_community.chat_models.huggingface import ChatHuggingFace
+
+    # from langchain_community.embeddings import HuggingFaceEmbeddings
+    from langchain_openai import ChatOpenAI, OpenAI
 
     model_name = model_name or chat_model_name
 

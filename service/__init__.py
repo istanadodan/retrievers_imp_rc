@@ -4,7 +4,7 @@
 """
 
 from typing import List
-from core.llm import get_llm
+from models import get_llm
 from langchain.prompts import PromptTemplate
 from cmn.types.query import QueryType
 from langchain_core.runnables import (
@@ -16,7 +16,7 @@ from langchain_core.runnables import (
 from service.callbacks.prompt_callabck import PromptStdOutCallbackHandler
 from service.callbacks.reorder_callback import DocumentReorderCallbackHandler
 from service.callbacks import ConsoleCallbackHandler
-from service.retrievers import (
+from cmn.vectordb.retrievers import (
     parent_document,
     contextual_compression,
     multi_query,
@@ -64,8 +64,8 @@ def simple_query(query: str):
 
 
 def webpage_summary(url: str, keyword: str, engine: QueryType, top_k: int):
-    from service.loaders import get_documents_from_urls
-    from service.utils.text_split import get_splitter
+    from cmn.loaders import get_documents_from_urls
+    from cmn.text_split import get_splitter
     import re
     import datetime
 
@@ -90,7 +90,7 @@ def webpage_summary(url: str, keyword: str, engine: QueryType, top_k: int):
 
 def doc_summary(keyword: str, path: str, engine: QueryType, top_k: int, **kwargs):
     from langchain.chains.summarize import load_summarize_chain
-    from service.retrievers import multi_query, parent_document
+    from cmn.vectordb.retrievers import multi_query, parent_document
 
     docs: List = []
     if engine == QueryType.Parent_Document:
@@ -220,7 +220,7 @@ Answer:
         )
         | RunnablePassthrough().assign(
             context=lambda x: "context:\n"
-            + "\ncontext:\n".join(
+            + "\n\n".join(
                 [
                     doc.page_content
                     for doc in reordering.transform_documents(x["retrieved_docs"])
@@ -266,11 +266,11 @@ Answer:
 def persist_to_vectorstore(
     path: str, is_pd_retriever: bool, vector_name: str = "chroma"
 ):
-    from service.utils.text_split import split_documents
-    from service.loaders import get_documents_from_file
+    from cmn.text_split import split_documents
+    from cmn.loaders import get_documents_from_file
     from langchain.retrievers import ParentDocumentRetriever
-    from core.db import get_vectorstore_from_type
-    from service.utils.text_split import get_splitter
+    from cmn.vectordb import get_vectorstore_from_type
+    from cmn.text_split import get_splitter
     import os
 
     # 문서 load
@@ -294,7 +294,7 @@ def persist_to_vectorstore(
         from langchain.storage import InMemoryStore
         from langchain_community.storage.astradb import AstraDBStore
         from langchain_astradb import AstraDBVectorStore
-        from core.llm import get_embeddings
+        from models import get_embeddings
 
         COLLECTION_NAME = os.path.basename(path).split(".")[0]
         ASTRA_DB_ID = "ce493861-0a04-4778-a125-ab74f95f296e"

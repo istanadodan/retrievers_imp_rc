@@ -3,7 +3,8 @@ tcp      373      0 localhost:11434         localhost:39156         ESTABLISHED
 tcp        0      0 localhost:39156         localhost:11434         ESTABLISHED
 """
 
-MODEL = "llama2:7b-chat"
+MODEL = "llama3-instruct-8b:latest"
+# MODEL = "llama2:7b-chat"
 # MODEL = "llama2:7b"
 
 

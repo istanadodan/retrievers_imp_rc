@@ -3,16 +3,14 @@
     시간단위로 exp함수를 적용하고 있어서 하루만 지난 것은 decay_rate가 0.03에서도 검색되지 않는다.
 """
 
-from typing import List
 from langchain.docstore.in_memory import InMemoryDocstore
 from langchain.docstore.document import Document
 from langchain.retrievers import TimeWeightedVectorStoreRetriever
-from langchain_community.vectorstores.faiss import FAISS
 import logging
 
 
 def query(query: str) -> str:
-    from core.db import get_vectorstore_from_type
+    from cmn.vectordb import get_vectorstore_from_type
 
     _vs_wrapper = get_vectorstore_from_type(vd_name="faiss", store=InMemoryDocstore({}))
 

@@ -3,8 +3,8 @@ from langchain.tools.retriever import create_retriever_tool
 from langchain.docstore.document import Document
 from langchain.agents.agent_types import AgentType
 from langchain.utilities.sql_database import SQLDatabase
-from core.llm import get_llm, get_embeddings
-from core.db import get_vectorstore_from_type
+from models import get_llm, get_embeddings
+from cmn.vectordb import get_vectorstore_from_type
 
 
 def query(query: str, k: int):
@@ -16,7 +16,7 @@ def get_few_shots_retriever(top_k: int = 1):
     """
     이 도구는 사용자가 회원정보를 조회하려는데 도움이 된다.
     """
-    from service.utils.retrieve_params import get_default_vsparams
+    from cmn.vectordb.retriever_default_param import get_default_vsparams
 
     # few shots 설정
     # key에 질의문내용을 넣고, value에 질의를 처리할 쿼리문 넣어준다.
@@ -51,7 +51,7 @@ def get_agent(k: int, agent_type="sql"):
     retriever_tool = create_retriever_tool(
         retriever=get_few_shots_retriever(top_k=k),
         name="find_member",
-        description="이 도구는 사용자가 회원정보를 조회할때 도움이 된다.",
+        description="이 도구는 사용자가 회원정보를 조회할 때, 조회용 query를 제공한다.",
     )
     suffix_prompt = """
     대여정보를 요청할때 우선 find_member함수를 호출하여 쿼리문을 조회할. 조회결과가 없으며,데이터베이스에서 관련성이 높은 스키마를 찾아 질의에 다시 답변할 것.

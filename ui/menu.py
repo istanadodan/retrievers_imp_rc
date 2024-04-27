@@ -33,7 +33,7 @@ class MenuUI:
 
     def run(self):
         import logging
-        from cmn.tasks import write_answer
+        from ui.tasks import write_answer
 
         if not self.current_app:
             return

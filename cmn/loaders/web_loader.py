@@ -1,6 +1,6 @@
 from typing import Union, List
 from langchain_community.document_loaders import WebBaseLoader
-from service.utils.text_split import get_splitter
+from cmn.text_split import get_splitter
 from cmn.types.loader import LoaderType, Document
 from overrides import override
 

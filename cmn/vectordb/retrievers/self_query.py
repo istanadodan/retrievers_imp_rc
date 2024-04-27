@@ -11,8 +11,8 @@ import logging
 
 
 def query(query: str):
-    from core.db import get_vectorstore_from_type
-    from core.llm import get_llm
+    from cmn.vectordb import get_vectorstore_from_type
+    from models import get_llm
 
     docs: List[Document] = _get_documents()
     _vs_wrapper = get_vectorstore_from_type(vd_name="chroma", docs=docs)

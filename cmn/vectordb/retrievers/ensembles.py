@@ -1,13 +1,12 @@
-from langchain_community.retrievers import BM25Retriever
+from langchain.retrievers.bm25 import BM25Retriever
 from langchain.retrievers import EnsembleRetriever
 import logging
-from core.db import get_vectorstore_from_type
-from core.llm import get_llm, get_embeddings
-from core.query import get_retriever
+from cmn.vectordb import get_vectorstore_from_type
+from models import get_llm, get_embeddings
 import re
 
-from service.loaders import get_documents_from_file
-from service.utils.text_split import split_documents
+from cmn.loaders import get_documents_from_file
+from cmn.text_split import split_documents
 
 
 def query(query: str, doc_path: str, k: int = 1):
@@ -19,7 +18,7 @@ def query(query: str, doc_path: str, k: int = 1):
 
 
 def ensembles_retriever(doc_path: str, k: int, dense_rate: float = 0.0):
-    from service.utils.retrieve_params import get_default_vsparams
+    from cmn.vectordb.retriever_default_param import get_default_vsparams
 
     docs = split_documents(get_documents_from_file(files=doc_path), chunk_size=200)
     _sparse_retriever = BM25Retriever.from_documents(docs, k=k)

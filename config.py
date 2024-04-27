@@ -1,10 +1,16 @@
-import logging
+import streamlit as st
 from dotenv import load_dotenv
 
 load_dotenv()
 
 
-def setup(st: any):
+def config_logger():
+    import logging
+
+    logging.basicConfig(level=logging.INFO)
+
+
+def page_config():
     st.set_page_config(
         page_icon="🙌",
         page_title="LLM Query",
@@ -13,8 +19,6 @@ def setup(st: any):
     )
 
     st.header("LLM 질의하기")
-
-    logging.basicConfig(level=logging.INFO)
 
     if "top_k" not in st.session_state:
         st.session_state.top_k = 2

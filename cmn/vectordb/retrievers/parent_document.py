@@ -4,10 +4,9 @@
     적정량의 child/parent node chunking크기를 고려한다. 예에서는 기본 (200/800)
 """
 
-from typing import List
 from langchain.retrievers import ParentDocumentRetriever
-from core.db import get_vectorstore_from_type
-from service.utils.text_split import get_splitter
+from cmn.vectordb import get_vectorstore_from_type
+from cmn.text_split import get_splitter
 from langchain.storage import InMemoryStore
 import logging
 
@@ -28,7 +27,7 @@ def query(query: str, doc_path: str, k: int = 3):
 
 
 def pdoc_retriever(doc_path: str, k: int = 3):
-    from service.utils.retrieve_params import get_default_vsparams
+    from cmn.vectordb.retriever_default_param import get_default_vsparams
 
     kwargs = get_default_vsparams(doc_path=doc_path)
     # kwargs["bsave"] = False

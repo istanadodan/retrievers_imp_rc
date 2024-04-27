@@ -4,7 +4,7 @@ import streamlit as st
 def run():
     from langchain_community.callbacks.manager import get_openai_callback
     from service.tools.sql_agent import query
-    from cmn.tasks import return_inactive
+    from ui.tasks import return_inactive
 
     user_question = ""
     # tab 작성

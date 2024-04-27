@@ -4,9 +4,8 @@ from langchain.retrievers.document_compressors import (
     LLMChainExtractor,
 )
 import logging
-from core.db import get_vectorstore_from_type
-from core.llm import get_llm, get_embeddings
-from core.query import get_retriever
+from cmn.vectordb import get_vectorstore_from_type
+from models import get_llm, get_embeddings
 import re
 
 
@@ -25,7 +24,7 @@ def compression_retriever(doc_path: str, k: int = 1, thre: float = 0.6):
         EmbeddingsRedundantFilter,
     )
     from langchain.retrievers.document_compressors import DocumentCompressorPipeline
-    from service.utils.retrieve_params import get_default_vsparams
+    from cmn.vectordb.retriever_default_param import get_default_vsparams
 
     kwargs = get_default_vsparams(doc_path=doc_path)
     vsclient = get_vectorstore_from_type(**kwargs)

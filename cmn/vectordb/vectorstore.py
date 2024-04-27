@@ -4,53 +4,53 @@ from langchain.docstore.document import Document
 from typing import List
 from cmn.types.vectorstore import VectoreStoreInf, VectoreStoreMixin
 from pathlib import Path
-from cmn.types.vectorstore import VectoreStoreType
+
 import os
 
 
-def get_available_vectorstores() -> list[str]:
-    """사용 가능한 vectorstore 목록을 반환한다."""
+# def get_available_vectorstores() -> list[str]:
+#     """사용 가능한 vectorstore 목록을 반환한다."""
 
-    return VectoreStoreType.values()
+#     return VectoreStoreType.values()
 
 
-def select_vectorstore(
-    vectorstore_type: str,
-    embedding_model: object,
-    **kwargs,
-) -> VectoreStoreInf:
-    """타입을 입력받아, vectorstore wrapper를 생성하여 반환한다."""
+# def select_vectorstore(
+#     vectorstore_type: str,
+#     embedding_model: object,
+#     **kwargs,
+# ) -> VectoreStoreInf:
+#     """타입을 입력받아, vectorstore wrapper를 생성하여 반환한다."""
 
-    if vectorstore_type == VectoreStoreType.FAISS:
-        kwargs = {
-            "embedding_model": embedding_model,
-            "persist_dir": kwargs.get("persist_dir"),
-            "index_name": kwargs.get("namespace"),  # 문서
-            "dim": 769,
-        }
-        return FaissVs(**kwargs)
+#     if vectorstore_type == VectoreStoreType.FAISS:
+#         kwargs = {
+#             "embedding_model": embedding_model,
+#             "persist_dir": kwargs.get("persist_dir"),
+#             "index_name": kwargs.get("namespace"),  # 문서
+#             "dim": 769,
+#         }
+#         return FaissVs(**kwargs)
 
-    elif vectorstore_type == VectoreStoreType.CHROMA:
-        kwargs = {
-            "embedding_model": embedding_model,
-            "persist_dir": kwargs.get("persist_dir"),
-            "collection_name": kwargs.get("namespace"),  # 문서
-        }
+#     elif vectorstore_type == VectoreStoreType.CHROMA:
+#         kwargs = {
+#             "embedding_model": embedding_model,
+#             "persist_dir": kwargs.get("persist_dir"),
+#             "collection_name": kwargs.get("namespace"),  # 문서
+#         }
 
-        return ChromaVs(**kwargs)
+#         return ChromaVs(**kwargs)
 
-    elif vectorstore_type == VectoreStoreType.PINECONE:
-        kwargs = {
-            "embedding_model": embedding_model,
-            "index_name": kwargs.get("index_name"),  # 문서그룹
-            "namespace": kwargs.get("namespace"),  # 문서
-        }
-        if not kwargs["index_name"]:
-            raise ValueError("index_name is required")
-        return PineconeVs(**kwargs)
+#     elif vectorstore_type == VectoreStoreType.PINECONE:
+#         kwargs = {
+#             "embedding_model": embedding_model,
+#             "index_name": kwargs.get("index_name"),  # 문서그룹
+#             "namespace": kwargs.get("namespace"),  # 문서
+#         }
+#         if not kwargs["index_name"]:
+#             raise ValueError("index_name is required")
+#         return PineconeVs(**kwargs)
 
-    else:
-        raise ValueError(f"vectorstore_type: {vectorstore_type} is not supported")
+#     else:
+#         raise ValueError(f"vectorstore_type: {vectorstore_type} is not supported")
 
 
 class PineconeVs(VectoreStoreMixin, VectoreStoreInf):

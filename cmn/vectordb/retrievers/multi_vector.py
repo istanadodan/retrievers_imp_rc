@@ -6,7 +6,7 @@
 
 from typing import List
 from langchain.retrievers import MultiVectorRetriever
-from core.db import get_vectorstore_from_type
+from cmn.vectordb import get_vectorstore_from_type
 from langchain.storage import InMemoryStore
 import logging
 
@@ -28,12 +28,12 @@ def query(query: str, doc_path: str, k: int = 3):
 
 
 def multivector_retriever1(doc_path: str, k: int = 3):
-    from service.utils.retrieve_params import get_default_vsparams
+    from cmn.vectordb.retriever_default_param import get_default_vsparams
     import uuid
-    from service.loaders import get_documents_from_file
-    from service.utils.text_split import get_splitter
+    from cmn.loaders import get_documents_from_file
+    from cmn.text_split import get_splitter
     from langchain.prompts import ChatPromptTemplate
-    from core.llm import get_llm
+    from models import get_llm
     from langchain_core.output_parsers import StrOutputParser
     from langchain.docstore.document import Document
 
@@ -77,12 +77,12 @@ def multivector_retriever1(doc_path: str, k: int = 3):
 # 요약문을 작성해서 질의대상으로 한다.
 # 모든 문서에 대해 LLM을 사용해야하는 문제가 있다.
 def multivector_retriever2(doc_path: str, k: int = 3):
-    from service.utils.retrieve_params import get_default_vsparams
+    from cmn.vectordb.retriever_default_param import get_default_vsparams
     import uuid
-    from service.loaders import get_documents_from_file
-    from service.utils.text_split import get_splitter
+    from cmn.loaders import get_documents_from_file
+    from cmn.text_split import get_splitter
     from langchain.prompts import ChatPromptTemplate
-    from core.llm import get_llm
+    from models import get_llm
     from langchain_core.output_parsers import StrOutputParser
     from langchain.docstore.document import Document
 
@@ -132,12 +132,12 @@ def hypothetical_questions(arr: List[str]) -> str:
 
 
 def multivector_retriever3(doc_path: str, k: int = 3):
-    from service.utils.retrieve_params import get_default_vsparams
+    from cmn.vectordb.retriever_default_param import get_default_vsparams
     import uuid
-    from service.loaders import get_documents_from_file
-    from service.utils.text_split import get_splitter
+    from cmn.loaders import get_documents_from_file
+    from cmn.text_split import get_splitter
     from langchain.prompts import ChatPromptTemplate
-    from core.llm import get_llm
+    from models import get_llm
     from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
     from langchain.output_parsers.openai_functions import JsonKeyOutputFunctionsParser
     from langchain.docstore.document import Document

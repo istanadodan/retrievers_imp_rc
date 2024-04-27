@@ -1,23 +1,7 @@
-import pathlib
-from typing import List, Union
-from langchain_core.vectorstores import VectorStoreRetriever
-from cmn.types.vectorstore import VectoreStoreInf
-from service.loaders import get_documents_from_file
-from service.utils.text_split import split_documents
+from .loaders import get_documents_from_file
+from cmn.text_split import split_documents
 from pathlib import Path
 from langchain_community.vectorstores import pinecone, chroma
-
-
-def get_retriever(
-    vs_client: VectoreStoreInf, search_type: str = "mmr", k: int = 2, **kwargs
-):
-    _retriever = VectorStoreRetriever(
-        vectorstore=vs_client.get(),
-        search_type=search_type,
-        search_kwargs={"k": k},
-    )
-
-    return _retriever
 
 
 # def has_namespace(vs: object, namespace):

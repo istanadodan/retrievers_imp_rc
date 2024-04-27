@@ -3,8 +3,8 @@ from ui.menu import MenuUI
 
 
 def show_menubar(st: streamlit, menu: MenuUI) -> None:
-    import cmn.utils.file as fileUtils
-    from cmn.tasks import return_inactive
+    import cmn.file as fileUtils
+    from ui.tasks import return_inactive
 
     _filelist = fileUtils.filelist()
 
