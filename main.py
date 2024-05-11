@@ -1,5 +1,5 @@
 import streamlit as st
-from ui.sidebar import show_menubar
+from frontend.sidebar import show_menubar
 from config import page_config, config_logger
 
 
@@ -7,7 +7,7 @@ def main():
     # 로거설정
     config_logger()
     # 타이틀, 세션변수 초기설정
-    page_config()
+    page_config(st)
 
     # 메뉴 생성
     app = create_menu()
@@ -20,10 +20,10 @@ def main():
 
 
 def create_menu():
-    from apps import doc_search, function_call, summary
-    from service.tools import rebate_agents, langgraph_ex1, rebate_graph
-    from service.agents import history_chat
-    from ui.menu import MenuUI
+    from frontend.apps import doc_search, function_call, summary
+    from backend.tools import rebate_agents, langgraph_ex1, rebate_graph
+    from backend.agents import history_chat
+    from frontend.menu import MenuUI
 
     app = MenuUI()
     app.add_app("문서조회", doc_search)

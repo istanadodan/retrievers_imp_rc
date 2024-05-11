@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,7 +10,7 @@ def config_logger():
     logging.basicConfig(level=logging.INFO)
 
 
-def page_config():
+def page_config(st:streamlit):
     st.set_page_config(
         page_icon="🙌",
         page_title="LLM Query",
@@ -28,3 +28,4 @@ def page_config():
 
     if "token_usage" not in st.session_state:
         st.session_state.token_usage = {}
+    
