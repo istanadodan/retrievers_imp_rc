@@ -1,6 +1,5 @@
 from typing import Union, List
-from langchain.document_loaders.text import TextLoader
-from backend.cmn.text_split import get_splitter
+from langchain_community.document_loaders import TextLoader
 from backend.cmn.types.loader import LoaderType, Document
 from overrides import override
 

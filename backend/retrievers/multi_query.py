@@ -24,7 +24,7 @@ def mquery_retriever(doc_path: str, k: int = 1):
     vsclient = get_vectorstore_from_type(**kwargs)
 
     _retriever = vsclient.get().as_retriever(
-        search_type="mmr",
+        # search_type="mmr",
         search_kwargs={"k": k},
     )
     if not _retriever:

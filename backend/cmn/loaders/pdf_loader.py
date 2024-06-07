@@ -1,5 +1,5 @@
 from typing import Union, List
-from langchain.document_loaders.pdf import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader
 from backend.cmn.types.loader import LoaderType, Document
 from overrides import override
 

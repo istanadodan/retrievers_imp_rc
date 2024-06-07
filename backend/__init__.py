@@ -159,7 +159,7 @@ def query(query: str, path: str, query_type: QueryType, k: int = 2):
     from langchain.agents import create_openai_functions_agent, AgentExecutor
     from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
     from langchain.document_transformers.long_context_reorder import LongContextReorder
-    from langchain_core.messages import HumanMessage, AIMessage
+    from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
 
     if not path:
         return (None, None)
@@ -204,32 +204,44 @@ Answer:
     )
 
     # LCEL을 사용하여 chain을 만들어본다.
+    # 처음과 마지막 부분 검색결과를 앞부분에 위치시킨다.
     reordering = LongContextReorder()
+    
     _chain = (
-        RunnablePassthrough().assign(
-            addtional_info=lambda _query: agent_executor.invoke(
-                {"input": _query["question"]}
-            )["output"]
-        )
-        # {
-        # "context": _retriever,
-        # "question": RunnablePassthrough() | RunnableLambda(lambda x: x["question"]),
-        # }
-        | RunnablePassthrough().assign(
-            retrieved_docs=lambda x: _retriever.invoke(input=x["question"]),
-        )
-        | RunnablePassthrough().assign(
-            context=lambda x: "context:\n"
-            + "\n\n".join(
-                [
-                    doc.page_content
-                    for doc in reordering.transform_documents(x["retrieved_docs"])
-                ]
+        # RunnablePassthrough().assign(
+        #     addtional_info=lambda x: agent_executor.invoke(
+        #         {"input": x["question"]}
+        #     )["output"],
+        # )
+        # | RunnablePassthrough().assign(
+        #     retrieved_docs=lambda x: _retriever.invoke(input=x["question"]),
+        # )
+        # | RunnablePassthrough().assign(
+        #     context=lambda x: "context:\n"
+        #     + "\n\n".join(
+        #         [
+        #             doc.page_content
+        #             for doc in reordering.transform_documents(x["retrieved_docs"])
+        #         ]
+        #     ),
+        # )
+        RunnableParallel(
+            addtional_info=lambda x: agent_executor.invoke({"input": x["question"]})[
+                "output"
+            ],
+            context=_retriever
+            | RunnableLambda(
+                lambda docs: "\n\n".join(
+                    f"{doc.page_content}\nsource:\n{doc.metadata}"
+                    for doc in reordering.transform_documents(docs)
+                )
             ),
+            question=lambda x: x["question"],
+            chat_history=lambda x: x["chat_history"],
         )
         | RunnableParallel(
             result=_chat_prompt | get_llm() | StrOutputParser(),
-            source_documents=RunnableLambda(lambda x: x["retrieved_docs"]),
+            source_documents=RunnableLambda(lambda x: x["context"]),
         )
         | RunnableLambda(
             lambda answer: {
@@ -245,6 +257,9 @@ Answer:
         config=config,
     )
 
+    # chat_history.extend(
+    #     BaseMessage(content=f"Question: {query}\nAnswer: {answer['result']}")
+    # )
     chat_history.extend(
         [HumanMessage(content=query), AIMessage(content=answer["result"])]
     )
