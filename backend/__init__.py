@@ -295,7 +295,7 @@ def persist_to_vectorstore(
 
     kwargs = {
         "vd_name": vector_name,
-        "index_name": "manuals",
+        "index_name": "sharedocs",
         "namespace": os.path.basename(path),
     }
     # vectorstore를 불러온다.

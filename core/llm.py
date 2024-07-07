@@ -48,9 +48,9 @@ def get_embeddings(model_name: str=None) -> "HuggingFaceEmbeddings":
                 embeddings = []
                 for text in texts:
                      text = text.replace("\n", " ")
-                     embedding = self.client.embeddings.create(input = [text], model=self.model).data[0].embedding                        
-                     embeddings.extend(embedding)
-
+                     embedding = self.client.embeddings.create(input = text, model=self.model, encoding_format="base64").data[0].embedding                        
+                     embeddings.append(embedding)
+                print(f'{text=}, embeddings = {embedding}')
                 return embeddings
             
             def embed_query(self, text: str) -> str:
