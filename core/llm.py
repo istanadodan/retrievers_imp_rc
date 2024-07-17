@@ -15,7 +15,6 @@ def get_embeddings(model_name: str=None) -> "HuggingFaceEmbeddings":
     encode_kwargs = {
         "normalize_embeddings": True,
         "device": device,
-        # "show_progress_bar": True,
     }
 
     if 'all-MiniLM'  in model_name:
