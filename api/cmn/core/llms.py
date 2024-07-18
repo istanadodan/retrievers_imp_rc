@@ -41,20 +41,20 @@ def get_embedding(type: str) -> BaseChatModel:
 
 
 def get_embedding(type: str):
-    from langchain.embeddings.base import Embeddings
+    from langchain_core.documents import Document
 
     if type == "local":
-        class LMStudioEmbedding(Embeddings):
+        class LMStudioEmbedding:
             def __init__(self, model: str, endpoint: str, api_key: str):
                 from openai import OpenAI
 
                 self.model = model
                 self.client = OpenAI(base_url=endpoint, api_key=api_key)
 
-            def embed_documents(self, texts):
+            def embed_documents(self, documents:list[Document]) -> list:
                 embeddings = []
-                for text_ in texts:                    
-                    text = text_.page_content.replace("\n", " ")
+                for document in documents:            
+                    text = document.page_content.replace("\n", " ")
                     embedding = (
                         self.client.embeddings.create(input=[text], model=self.model)
                         .data[0]
@@ -64,7 +64,7 @@ def get_embedding(type: str):
                 return embeddings
 
             def embed_query(self, text: str) -> List[float]:
-                return super().embed_query(text)
+                return self.embed_documents([Document(page_content=text)])
 
         return LMStudioEmbedding(
             model=settings.LOCAL_EMBEDDING_MODEL,
