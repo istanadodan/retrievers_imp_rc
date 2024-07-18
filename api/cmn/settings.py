@@ -9,6 +9,7 @@ class Settings(BaseSettings):
         case_sensitive = True
     
     LOCAL_LLM_MODEL: str
+    LOCAL_EMBEDDING_MODEL: str
     LOCAL_API_KEY: str
     LOCAL_BASE_URL: str
 
