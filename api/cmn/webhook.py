@@ -6,7 +6,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 app = FastAPI()
 
 @app.route('/webhook', methods=['POST'])
-def webhook():
+def webhook(request):
+    logging.info(f"Received webhook: {request=}")
     data = requests.json
     logging.info("Received webhook data: %s", data)
     return JSONResponse(data={"status": "success"})
