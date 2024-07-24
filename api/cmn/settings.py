@@ -4,7 +4,7 @@ from pathlib import Path
 class Settings(BaseSettings):
 
     class Config:
-        env_file = (Path(__file__).parents[1] / ".env").resolve()
+        env_file = Path(__file__).parents[1] / ".env"
         env_file_encoding = "utf-8"        
         case_sensitive = True
     
