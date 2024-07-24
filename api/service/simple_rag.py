@@ -12,12 +12,16 @@ def rag(file_path: Path):
     embed_model = get_embedding(type="local")
 
     from api.cmn.prepocess.preprocess import DefaultPreProcessor
+    from api.cmn.vectordb.load import VectorDbLoader
 
     preprocessor = DefaultPreProcessor(
         embed_model=embed_model, chunk_params={"chunk_size": 500, "chunk_overlap": 0}
     )
 
     docs = preprocessor.process(file_type=RagFileType.PDF, file_path=file_path)
+    
+    # persistence
+    vdb = VectorDbLoader(name='chroma')
     # chain = prompt | llm | StrOutputParser()
 
     return docs
