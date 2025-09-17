@@ -1,6 +1,6 @@
 """
-    LLM으로 하여금 관련된 유사질의를 4개를 만들어 수행.
-    질의 갯수는 default promptTemplate에 존재.
+LLM으로 하여금 관련된 유사질의를 4개를 만들어 수행.
+질의 갯수는 default promptTemplate에 존재.
 """
 
 from typing import List
@@ -206,7 +206,7 @@ Answer:
     # LCEL을 사용하여 chain을 만들어본다.
     # 처음과 마지막 부분 검색결과를 앞부분에 위치시킨다.
     reordering = LongContextReorder()
-    
+
     _chain = (
         # RunnablePassthrough().assign(
         #     addtional_info=lambda x: agent_executor.invoke(
@@ -345,7 +345,7 @@ def persist_to_vectorstore(
         )
         # parent/child docstore 생성
         # ids=None 시, 오류
-        retriever.add_documents(documents=split_docs)
+        retriever.add_documents(documents=split_docs, ids=[], add_to_docstore=False)
 
         _store_data = [
             (k, {"page_content": v.page_content, "metadata": v.metadata})

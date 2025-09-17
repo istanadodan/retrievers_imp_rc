@@ -1,6 +1,8 @@
 from enum import Enum, auto
+from typing import Iterator
 from langchain_core.documents import Document
 from langchain_community.document_loaders import PyMuPDFLoader
+from langchain_community.document_loaders.base import BaseLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pathlib import Path
 
@@ -12,7 +14,14 @@ class RagFileType(Enum):
     msx = auto
     hwp = auto
 
+class PdfDocLoader(BaseLoader):
+    def __init__(self, file_path: str):
+        self.file_path = Path(file_path)
 
+    def lazy_load(self) -> Iterator[Document]:
+        loader = PyMuPDFLoader(self.file_path)
+        return loader.lazy_load()
+    
 class DefaultPreProcessor:
     """문서 청킹처리"""
 

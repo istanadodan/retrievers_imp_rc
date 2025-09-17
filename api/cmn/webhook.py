@@ -1,16 +1,17 @@
-from fastapi import FastAPI, requests
+from fastapi import FastAPI
+from fastapi.requests import Request
 from fastapi.responses import JSONResponse
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 app = FastAPI()
 
-@app.route('/webhook', methods=['POST'])
-def webhook(request):
+@app.route('/webhook', methods=['POST', 'GET'])
+async def webhook(request:Request):
     logging.info(f"Received webhook: {request=}")
-    data = requests.json
+    data = await request.body()
     logging.info("Received webhook data: %s", data)
-    return JSONResponse(data={"status": "success"})
+    return JSONResponse(content={"status": "success"})
 
 if __name__ == '__main__':
     import uvicorn
